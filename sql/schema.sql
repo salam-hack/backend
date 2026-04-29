@@ -278,32 +278,3 @@ CREATE TRIGGER trg_conversation_memories_updated_at
   BEFORE UPDATE ON conversation_memories
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-
--- ============================================================
---  TABLE: stored_files
---  MinIO object references — metadata only, no blobs
--- ============================================================
-
-CREATE TABLE stored_files (
-  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id         UUID        NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  conversation_id UUID        REFERENCES conversations (id) ON DELETE SET NULL,
-  transaction_id  UUID        REFERENCES transactions (id) ON DELETE SET NULL,
-  bucket          VARCHAR(120) NOT NULL,
-  object_key      TEXT        NOT NULL UNIQUE,
-  original_name   VARCHAR(255) NOT NULL,
-  mime_type       VARCHAR(120) NOT NULL,
-  size_bytes      BIGINT      NOT NULL CHECK (size_bytes > 0),
-  checksum        TEXT,
-  status          file_status NOT NULL DEFAULT 'pending',
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_stored_files_user_id         ON stored_files (user_id);
-CREATE INDEX idx_stored_files_conversation_id ON stored_files (conversation_id);
-CREATE INDEX idx_stored_files_transaction_id  ON stored_files (transaction_id);
-
-CREATE TRIGGER trg_stored_files_updated_at
-  BEFORE UPDATE ON stored_files
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

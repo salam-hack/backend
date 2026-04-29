@@ -164,27 +164,6 @@ app.get("/health/ready", async (req, res) => {
     checks.database = { status: "error", message: err.message };
   }
 
-  // ── MinIO ─────────────────────────────────────────────────────────────────
-  try {
-    const { Client } = require("minio");
-    const minioClient = new Client({
-      endPoint: env.minioEndpoint,
-      port: env.minioPort,
-      useSSL: env.minioUseSsl,
-      accessKey: env.minioAccessKey,
-      secretKey: env.minioSecretKey,
-    });
-    await minioClient.bucketExists(env.minioBucket);
-    checks.storage = { status: "ok" };
-  } catch (err) {
-    // MinIO failure is non-fatal in development
-    if (env.isProduction) allHealthy = false;
-    checks.storage = {
-      status: env.isProduction ? "error" : "warn",
-      message: err.message,
-    };
-  }
-
   // ── OpenAI (optional) ─────────────────────────────────────────────────────
   checks.ai = env.openAiApiKey
     ? { status: "ok", model: env.openAiModel }

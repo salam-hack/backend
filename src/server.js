@@ -74,35 +74,10 @@ async function checkDatabase() {
   log("info", "[DB]      PostgreSQL connected ✓");
 }
 
-/**
- * Verify the MinIO connection by checking (or creating) the configured bucket.
- * Failure is non-fatal in development so the app can start without MinIO.
- *
- * @returns {Promise<void>}
- */
-async function checkMinio() {
-  const { Client } = require("minio");
-  const client = new Client({
-    endPoint: env.minioEndpoint,
-    port: env.minioPort,
-    useSSL: env.minioUseSsl,
-    accessKey: env.minioAccessKey,
-    secretKey: env.minioSecretKey,
-  });
-
-  const exists = await client.bucketExists(env.minioBucket);
-  if (!exists) {
-    await client.makeBucket(env.minioBucket);
-    log("info", `[MinIO]   Bucket "${env.minioBucket}" created ✓`);
-  } else {
-    log("info", `[MinIO]   Bucket "${env.minioBucket}" reachable ✓`);
-  }
-}
 
 /**
  * Run all startup checks.
  * Critical checks (database) abort startup on failure.
- * Optional checks (MinIO, AI) emit warnings in development but abort in production.
  *
  * @returns {Promise<void>}
  */
@@ -115,18 +90,6 @@ async function runStartupChecks() {
   } catch (err) {
     log("error", `[DB]      FAILED — ${err.message}`);
     throw new Error("Cannot connect to PostgreSQL. Aborting startup.");
-  }
-
-  // ── Optional: MinIO ───────────────────────────────────────────────────────
-  try {
-    await withTimeout(checkMinio(), STARTUP_CHECK_TIMEOUT_MS, "MinIO");
-  } catch (err) {
-    const msg = `[MinIO]   FAILED — ${err.message}`;
-    if (env.isProduction) {
-      log("error", msg);
-      throw new Error("Cannot connect to MinIO. Aborting startup.");
-    }
-    log("warn", `${msg} (non-fatal in development — file uploads will fail)`);
   }
 
   // ── Optional: OpenAI key present ──────────────────────────────────────────

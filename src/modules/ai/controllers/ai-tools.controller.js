@@ -260,11 +260,7 @@ aiToolsRouter.post('/generate-reply', validateBody(replySchema), asyncHandler(as
     data: { lastMessageAt: new Date() }
   });
 
-  res.status(200).json({
-    userMessage,
-    assistantMessage,
-    aiReply: { model: aiReply.model, latencyMs: aiReply.latencyMs, usage: aiReply.usage }
-  });
+  res.status(200).json({ assistantMessage });
 }));
 
 module.exports = { aiToolsRouter };

@@ -130,14 +130,6 @@ const env = Object.freeze({
   openAiApiKey: optional("OPENAI_API_KEY", ""),
   openAiBaseUrl: optional("OPENAI_BASE_URL", ""),
   openAiModel: optional("OPENAI_MODEL", "gpt-4o-mini"),
-
-  // ── MinIO ─────────────────────────────────────────────────────────────────
-  minioEndpoint: optional("MINIO_ENDPOINT", "localhost"),
-  minioPort: optionalInt("MINIO_PORT", 9000),
-  minioUseSsl: optionalBool("MINIO_USE_SSL", false),
-  minioAccessKey: optional("MINIO_ACCESS_KEY", "minioadmin"),
-  minioSecretKey: optional("MINIO_SECRET_KEY", "minioadmin"),
-  minioBucket: optional("MINIO_BUCKET", "salam-files"),
 });
 
 // ─── Validate insecure defaults in production ─────────────────────────────────
