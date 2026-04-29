@@ -1,23 +1,103 @@
 # Salam Hack Backend
 
-Express.js backend using PostgreSQL and Prisma for a fintech AI assistant.
+A streamlined Express.js backend using PostgreSQL and Prisma for a fintech AI assistant. This project has been cleaned up to focus on core financial tracking and AI-powered insights.
 
-## Features started
+## Active Features
 
-- JWT authentication with refresh tokens
-- Users profile endpoint
-- AI transaction parsing using OpenAI with local fallback
-- Transactions CRUD foundation
-- Chat conversations and messages
-- Global and conversation memory
-- MinIO presigned file upload/download URLs
-- Clean architecture: Controller, Service, Repository
+### Core Financial Tracking
+- **User Profile**: Get user financial overview with income, expenses, savings rate, and goals
+- **Dashboard**: Personalized home dashboard with balance, recent transactions, and smart analysis
+- **Transaction Management**:
+  - Manual transaction addition
+  - AI-powered transaction parsing from text
+  - Transaction categories and listings
+  - Savings analysis over time
 
-## Run locally
+### AI Tools (Internal)
+- **User Profile Summary**: Financial behavior analysis for AI context
+- **Conversation Management**: Summary and turn tracking for chat history
+- **Date Utilities**: Current date endpoint for AI operations
+- **Reply Generation**: AI-powered response generation with conversation context
 
-1. Copy `.env.example` to `.env`.
-2. Start dependencies: `docker compose up -d`.
-3. Install dependencies: `npm install`.
-4. Generate Prisma client: `npm run prisma:generate`.
-5. Run migrations: `npm run prisma:migrate`.
-6. Start API: `npm run dev`.
+### User Management
+- **Profile Access**: Get and update user profile information
+
+## Architecture
+
+The codebase follows clean architecture principles:
+- **Controllers**: Handle HTTP requests and responses
+- **Services**: Contain business logic
+- **Repositories**: Manage database operations
+- **Middleware**: Handle common concerns (validation, error handling, async operations)
+
+## API Endpoints
+
+### Public Endpoints
+- `GET /api/home?user_id=<uuid>` - Dashboard data
+- `POST /api/transactions/add-manual` - Add manual transaction
+- `POST /api/transactions/parse-ai` - Parse transaction from text
+- `GET /api/transactions/categories` - Get available categories
+- `GET /api/transactions/all` - List transactions with filtering
+- `GET /api/financial/savings-analysis` - Savings rate analysis
+
+### User Endpoints
+- `GET /internal/v1/users/me` - Get user profile
+- `PATCH /internal/v1/users/me` - Update user profile
+
+### AI Tools (Internal Use)
+- `GET /internal/ai-tools/user-profile/:user_id` - Financial profile for AI
+- `GET /internal/ai-tools/conversation-summary/:conversation_id` - Chat summary
+- `PATCH /internal/ai-tools/conversation-summary/:conversation_id` - Update summary
+- `GET /internal/ai-tools/conversation-turns/:conversation_id` - Conversation turns
+- `GET /internal/ai-tools/current-date` - Current date
+- `POST /internal/ai-tools/generate-reply` - Generate AI response
+
+## Technology Stack
+
+- **Runtime**: Node.js with Express.js
+- **Database**: PostgreSQL with Prisma ORM
+- **AI**: OpenAI integration with mock fallback
+- **Validation**: Zod schemas
+- **Security**: Helmet, CORS (configured for development)
+
+## Development Setup
+
+1. **Environment Setup**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+2. **Start Dependencies**
+   ```bash
+   docker compose up -d
+   ```
+
+3. **Install Dependencies**
+   ```bash
+   npm install
+   ```
+
+4. **Database Setup**
+   ```bash
+   npm run prisma:generate
+   npm run prisma:migrate
+   ```
+
+5. **Start Development Server**
+   ```bash
+   npm run dev
+   ```
+
+The API will be available at `http://localhost:3000` (or your configured PORT).
+
+## Authentication
+
+Currently disabled for easy testing. All endpoints are publicly accessible with user context provided via:
+- `X-User-Id` header, or
+- Default test user if no header provided
+
+## Health Checks
+
+- `GET /health` - Basic liveness check
+- `GET /health/ready` - Deep readiness check with database and storage validation
