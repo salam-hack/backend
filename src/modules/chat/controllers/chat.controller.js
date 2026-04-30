@@ -19,6 +19,15 @@ const createConversationSchema = z.object({
   title: z.string().optional()
 });
 
+const listConversationsSchema = z.object({
+  userId: z.string().uuid('Invalid user ID'),
+});
+
+const getTurnsSchema = z.object({
+  userId: z.string().uuid('Invalid user ID'),
+  limit: z.number().int().positive().optional(),
+});
+
 /**
  * POST /api/chat/new
  * Create a new conversation.
@@ -44,6 +53,37 @@ chatRouter.post('/send', validateBody(sendMessageSchema), asyncHandler(async (re
 
   res.status(200).json({
     assistantMessage: result.assistantMessage
+  });
+}));
+
+/**
+ * POST /api/chat/list
+ * List all conversations for a user. Title = AI-generated summary.
+ */
+chatRouter.post('/list', validateBody(listConversationsSchema), asyncHandler(async (req, res) => {
+  const { userId } = req.body;
+
+  const conversations = await chatService.getUserConversations(userId);
+
+  res.status(200).json({
+    success: true,
+    data: conversations
+  });
+}));
+
+/**
+ * POST /api/chat/:conversationId/turns
+ * Get conversation history as turns.
+ */
+chatRouter.post('/:conversationId/turns', validateBody(getTurnsSchema), asyncHandler(async (req, res) => {
+  const { conversationId } = req.params;
+  const { userId, limit = 50 } = req.body;
+
+  const turns = await chatService.getConversationTurns(userId, conversationId, limit);
+
+  res.status(200).json({
+    success: true,
+    data: turns
   });
 }));
 

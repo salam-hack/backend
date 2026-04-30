@@ -72,6 +72,12 @@ The codebase follows clean architecture principles:
 - **Savings Analysis**
   - `GET /api/financial/savings-analysis?userId=<uuid>`
 
+- **Financial Insights**
+  - `POST /api/insights`
+  - **Body**:
+    - `userId` (Required, UUID)
+  - **Response**: Returns an array of customized alerts (daily, weekly, monthly) based on the user's spending behavior.
+
 - **Send Chat Message**
   - `POST /api/chat/send`
   - **Body**:
@@ -85,6 +91,21 @@ The codebase follows clean architecture principles:
   - **Body**:
     - `userId` (Required, UUID)
     - `title` (Optional, String)
+
+- **List All Conversations**
+  - `POST /api/chat/list`
+  - **Body**:
+    - `userId` (Required, UUID)
+  - **Description**: Returns a list of all active conversations, where `title` is the AI-generated `summary`.
+  - **Response**: `[ { id, title, createdAt, lastMessageAt }, ... ]`
+
+- **Get Conversation Turns**
+  - `POST /api/chat/:conversationId/turns`
+  - **Body**:
+    - `userId` (Required, UUID)
+    - `limit` (Optional, Number, default: 50)
+  - **Description**: Returns the conversation history formatted as a list of turns.
+  - **Response**: `[ { user: "message", assistant: "reply" }, ... ]`
 
 ### User Endpoints
 
