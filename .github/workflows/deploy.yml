@@ -32,6 +32,6 @@ jobs:
 
       - name: Deploy on server
         run: |
-          /home/kx9/modaber/backend
+          cd /home/kx9/modaber/backend
           docker compose pull
           docker compose up -d --force-recreate
