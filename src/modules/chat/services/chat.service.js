@@ -138,6 +138,7 @@ class ChatService {
   async _runAiPipeline({ userId, conversationId, placeholderId }) {
     let assistantContent = "";
     let aiReply = { error: "AI_CHATBOT_UNAVAILABLE" };
+    const FALLBACK_MESSAGE = "عذراً، خدمة الذكاء الاصطناعي غير متاحة حالياً. يرجى المحاولة مرة أخرى لاحقاً.";
 
     try {
       const messages = await chatRepository.getRecentMessages(conversationId, 20);
@@ -158,8 +159,8 @@ class ChatService {
     }
 
     const assistantMessage = await chatRepository.updateMessage(placeholderId, {
-      content: assistantContent,
-      status: aiReply.error ? "failed" : "completed",
+      content: aiReply.error ? FALLBACK_MESSAGE : assistantContent,
+      status: aiReply.error ? "completed" : "completed",
       metadata: {
         ...(aiReply
           ? {

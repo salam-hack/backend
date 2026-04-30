@@ -6,10 +6,17 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Starting DB Seed...');
 
-  // 1. Clean existing data
-  await prisma.transaction.deleteMany();
-  await prisma.goal.deleteMany();
-  await prisma.user.deleteMany();
+  // Check if main user already exists — skip seed if so
+  const existingUser = await prisma.user.findUnique({
+    where: { id: '550e8400-e29b-41d4-a716-446655440001' }
+  });
+
+  if (existingUser) {
+    console.log('Database already seeded. Skipping to protect existing data.');
+    return;
+  }
+
+  console.log('No existing data found. Seeding fresh database...');
 
   // 2. Setup dates
   const now = new Date();
