@@ -34,11 +34,14 @@ The codebase follows clean architecture principles:
 
 ### Public Endpoints
 - `GET /api/home?userId=<uuid>` - Dashboard data
-- `POST /api/transactions/add-manual` - Add manual transaction (body requires `userId`, `title`, `amount`, `type`, `categoryId`)
+- `POST /api/transactions/add-manual` - Add manual transaction (body requires `userId`, `title`, `amount`, `type`, `categoryId`). 
+  - **Response**: Returns the transaction `data` and a root-level `assistantMessage` object.
 - `POST /api/transactions/parse-ai` - Parse transaction from text (body requires `userId` and `message` or `text`)
 - `GET /api/transactions/categories` - Get available categories
 - `GET /api/transactions/all?userId=<uuid>` - List transactions with filtering
 - `GET /api/financial/savings-analysis?userId=<uuid>` - Savings rate analysis
+- `POST /api/chat/send` - Generate AI response with conversation context.
+  - **Response**: Returns a root-level `assistantMessage` object.
 
 ### User Endpoints
 - `GET /internal/v1/users/me` - Get user profile
@@ -96,6 +99,10 @@ The API will be available at `http://localhost:3000` (or your configured PORT).
 Currently disabled for easy testing. All endpoints are publicly accessible with user context provided via:
 - `X-User-Id` header, or
 - Default test user if no header provided
+
+## Currency
+
+The application defaults to **Egyptian Pound (EGP)** for the MVP. This can be configured via the `DEFAULT_CURRENCY` environment variable.
 
 ## Health Checks
 

@@ -24,7 +24,7 @@ class TransactionsService {
   create(userId, data) {
     return transactionsRepository.create({
       userId,
-      amount: data.amount,
+      amount: Math.abs(data.amount), // Ensure positive, type determines sign
       currency: (data.currency || env.defaultCurrency).toUpperCase(),
       category: data.category,
       item: data.item || null,
@@ -60,10 +60,6 @@ class TransactionsService {
     return result;
   }
 
-  async parse(description) {
-    return aiService.classifyTransaction(description);
-  }
-
   async addManual(userId, data) {
     const category = getCategoryName(data.categoryId);
     if (!category) throw new BadRequestError('Invalid categoryId');
@@ -71,7 +67,7 @@ class TransactionsService {
     return transactionsRepository.create({
       userId,
       amount: Math.abs(data.amount), // Ensure positive, type determines sign
-      currency: 'EGP', // Default currency is Egyptian Pound
+      currency: (data.currency || env.defaultCurrency).toUpperCase(),
       category,
       item: data.title,
       quantity: null,
