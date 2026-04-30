@@ -171,11 +171,19 @@ class ChatService {
       placeholderId: placeholder.id,
     });
 
-    // ── 6. Stamp conversation ────────────────────────────────────────────────
+    // ── 6. If AI failed, mark user message as failed too ──────────────────────
+    let finalUserMessage = userMessage;
+    if (aiReply?.error) {
+      finalUserMessage = await chatRepository.updateMessage(userMessage.id, {
+        status: "failed",
+      });
+    }
+
+    // ── 7. Stamp conversation ────────────────────────────────────────────────
     await chatRepository.touchConversation(conversationId);
 
     return {
-      userMessage,
+      userMessage: finalUserMessage,
       assistantMessage,
       aiReply,
     };
@@ -205,13 +213,13 @@ class ChatService {
    * @returns {Promise<{ assistantMessage, aiReply }>}
    */
   async _runAiPipeline({ userId, conversationId, placeholderId }) {
-    let assistantContent = JSON.stringify({ error: "AI_CHATBOT_UNAVAILABLE" });
-    let aiReply = null;
+    let assistantContent = "";
+    let aiReply = { error: "AI_CHATBOT_UNAVAILABLE" };
 
     try {
       const messages = await chatRepository.getRecentMessages(conversationId, 20);
       const completedMessages = messages.filter(
-        (message) => message.content && message.status !== "processing",
+        (message) => message.status === "completed" && message.content,
       );
 
       aiReply = await aiChatService.generateReply(completedMessages, { 
@@ -219,9 +227,7 @@ class ChatService {
         conversationId
       });
 
-      if (aiReply.error) {
-        assistantContent = JSON.stringify({ error: aiReply.error });
-      } else {
+      if (!aiReply.error) {
         assistantContent = aiReply.content;
       }
     } catch (err) {
@@ -230,7 +236,7 @@ class ChatService {
 
     const assistantMessage = await chatRepository.updateMessage(placeholderId, {
       content: assistantContent,
-      status: "completed",
+      status: aiReply.error ? "failed" : "completed",
       metadata: {
         ...(aiReply
           ? {

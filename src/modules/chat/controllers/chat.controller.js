@@ -25,11 +25,7 @@ chatRouter.post('/send', validateBody(sendMessageSchema), asyncHandler(async (re
   const result = await chatService.sendMessage(userId, conversationId, message);
 
   res.status(200).json({
-    success: true,
-    data: {
-      userMessage: result.userMessage,
-      assistantMessage: result.assistantMessage
-    }
+    assistantMessage: result.assistantMessage
   });
 }));
 

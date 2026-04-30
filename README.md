@@ -50,7 +50,7 @@ The codebase follows clean architecture principles:
 - `PATCH /internal/ai-tools/conversation-summary/:conversation_id` - Update summary
 - `GET /internal/ai-tools/conversation-turns/:conversation_id` - Conversation turns
 - `GET /internal/ai-tools/current-date` - Current date
-- `POST /internal/ai-tools/generate-reply` - Generate AI response
+- `POST /api/chat/send` - Generate AI response
 
 ## Technology Stack
 

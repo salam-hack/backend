@@ -218,6 +218,29 @@ app.post(
 
     try {
       const data = await transactionsService.addManual(userId, req.body);
+      
+      // Handle assistant message
+      let assistantMessage = null;
+      const conversationId = req.body.conversationId;
+      
+      if (conversationId) {
+        const { chatRepository } = require('./modules/chat/repositories/chat.repository');
+        assistantMessage = await chatRepository.createMessage({
+          conversationId,
+          userId,
+          role: 'assistant',
+          content: `تمت إضافة ${data.type === 'expense' ? 'مصروف' : 'دخل'}: ${data.item} بمبلغ ${data.amount} ${data.currency}`,
+          status: 'completed'
+        });
+      } else {
+        assistantMessage = {
+          id: require('crypto').randomUUID(),
+          role: 'assistant',
+          content: `تمت إضافة ${data.type === 'expense' ? 'مصروف' : 'دخل'}: ${data.item} بمبلغ ${data.amount} ${data.currency}`,
+          status: 'completed'
+        };
+      }
+
       res.status(201).json({
         success: true,
         data: {
@@ -230,6 +253,7 @@ app.post(
           date: data.transactionDate.toISOString().split('T')[0],
           transactionDate: data.transactionDate.toISOString(),
         },
+        assistantMessage
       });
     } catch (err) {
       res.status(err.statusCode || 500).json({ error: err.message });
