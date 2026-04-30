@@ -38,3 +38,4 @@ jobs:
           cd /home/kx9/modaber/backend
           docker compose pull
           docker compose up -d --force-recreate
+          docker compose exec backend npx prisma migrate deploy
