@@ -2,12 +2,10 @@
 
 set -e
 
-echo "Running Prisma DB sync..."
+echo "🚀 Running migrations..."
 
-npx prisma db push --accept-data-loss
+npx prisma migrate deploy
 
-echo "database synced successfully"
-
-echo "Starting backend..."
+echo "🚀 Starting backend..."
 
 npm start
