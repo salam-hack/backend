@@ -128,12 +128,12 @@ const env = Object.freeze({
 
   // ── AI Services ───────────────────────────────────────────────────────────
   aiChatbotUrl: serviceUrl(
-    "AI-CHATBOT_URL",
-    optional("AI_CHATBOT_URL", "http://localhost:8001/chat"),
+    "AI_CHATBOT_URL",
+    "http://localhost:8001/chat",
   ),
   aiParserUrl: serviceUrl(
-    "AI-PARSER_URL",
-    optional("AI_PARSER_URL", "https://agent.sell-io.app/parse"),
+    "AI_PARSER_URL",
+    "https://agent.sell-io.app/parse",
   ),
 });
 
