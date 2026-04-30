@@ -92,12 +92,9 @@ async function runStartupChecks() {
     throw new Error("Cannot connect to PostgreSQL. Aborting startup.");
   }
 
-  // ── Optional: OpenAI key present ──────────────────────────────────────────
-  if (env.openAiApiKey) {
-    log("info", `[AI]      OpenAI key present, model="${env.openAiModel}" ✓`);
-  } else {
-    log("warn", "[AI]      OPENAI_API_KEY not set — AI features use mock mode");
-  }
+  // ── Optional: AI services configured ──────────────────────────────────────
+  log("info", `[AI]      AI Chatbot URL: ${env.aiChatbotUrl}`);
+  log("info", `[AI]      AI Parser URL: ${env.aiParserUrl}`);
 
   log("info", "[STARTUP] All checks passed ✓");
 }

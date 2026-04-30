@@ -68,6 +68,13 @@ function optionalBool(key, defaultValue) {
   return raw.trim() === "true" || raw.trim() === "1";
 }
 
+function serviceUrl(key, fallback) {
+  const value = optional(key, fallback);
+  return value.startsWith("http://") || value.startsWith("https://")
+    ? value
+    : `https://${value}`;
+}
+
 // ─── Build env object ─────────────────────────────────────────────────────────
 
 /**
@@ -101,12 +108,6 @@ const env = Object.freeze({
   // ── Database ──────────────────────────────────────────────────────────────
   databaseUrl: required("DATABASE_URL"),
 
-  // ── JWT ───────────────────────────────────────────────────────────────────
-  jwtAccessSecret: required("JWT_ACCESS_SECRET"),
-  jwtRefreshSecret: required("JWT_REFRESH_SECRET"),
-  jwtAccessExpiresIn: optional("JWT_ACCESS_EXPIRES_IN", "15m"),
-  jwtRefreshExpiresIn: optional("JWT_REFRESH_EXPIRES_IN", "30d"),
-
   // ── App defaults ──────────────────────────────────────────────────────────
   defaultCurrency: optional("DEFAULT_CURRENCY", "EGP"),
 
@@ -125,30 +126,18 @@ const env = Object.freeze({
   /** Requests per minute for auth routes (stricter). */
   rateLimitAuth: optionalInt("RATE_LIMIT_AUTH", 20),
 
-  // ── OpenAI ────────────────────────────────────────────────────────────────
-  /** Optional — AI features degrade gracefully when absent. */
-  openAiApiKey: optional("OPENAI_API_KEY", ""),
-  openAiBaseUrl: optional("OPENAI_BASE_URL", ""),
-  openAiModel: optional("OPENAI_MODEL", "gpt-4o-mini"),
+  // ── AI Services ───────────────────────────────────────────────────────────
+  aiChatbotUrl: serviceUrl(
+    "AI-CHATBOT_URL",
+    optional("AI_CHATBOT_URL", "http://localhost:8001/chat"),
+  ),
+  aiParserUrl: serviceUrl(
+    "AI-PARSER_URL",
+    optional("AI_PARSER_URL", "https://agent.sell-io.app/parse"),
+  ),
 });
 
-// ─── Validate insecure defaults in production ─────────────────────────────────
-
 if (env.isProduction) {
-  const insecureDefaults = [
-    ["JWT_ACCESS_SECRET", env.jwtAccessSecret, "change-me-access-secret"],
-    ["JWT_REFRESH_SECRET", env.jwtRefreshSecret, "change-me-refresh-secret"],
-  ];
-
-  for (const [key, value, insecureValue] of insecureDefaults) {
-    if (value === insecureValue) {
-      throw new Error(
-        `[ENV] "${key}" is set to its insecure default value in production.\n` +
-          `      Generate a strong random secret and set it in your environment.`,
-      );
-    }
-  }
-
   if (!env.corsOrigins) {
     console.warn(
       "[ENV] Warning: CORS_ORIGINS is not set in production. " +
