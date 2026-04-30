@@ -4,53 +4,7 @@ const { transactionsRepository } = require('../repositories/transactions.reposit
 const { aiService } = require('../../ai/services/ai.service');
 const { prisma } = require('../../../prisma/client');
 const { env } = require('../../../config/env');
-
-// Category to ID mapping (matching classification system)
-const CATEGORY_ID_MAP = {
-  'Food': 'EXP_FOOD',
-  'Transport': 'EXP_TRANSPORT',
-  'Bills': 'EXP_BILLS',
-  'Shopping': 'EXP_SHOPPING',
-  'Entertainment': 'EXP_ENTERTAINMENT',
-  'Health': 'EXP_HEALTH',
-  'Education': 'EXP_EDUCATION',
-  'Gifts': 'EXP_GIFTS',
-  'Other': 'EXP_OTHER',
-  'Salary': 'INC_SALARY',
-  'Freelance': 'INC_FREELANCE',
-  'Investments': 'INC_INVESTMENTS',
-  'Income': 'INC_OTHER', // General income
-  // Goal categories
-  'Electronics': 'GOAL_ELECTRONICS',
-  'Travel': 'GOAL_TRAVEL',
-  'Car': 'GOAL_CAR',
-  'Home': 'GOAL_HOME',
-  'Personal': 'GOAL_PERSONAL',
-};
-
-// Reverse mapping: ID to category name
-const ID_TO_CATEGORY_MAP = {
-  'EXP_FOOD': 'Food',
-  'EXP_TRANSPORT': 'Transport',
-  'EXP_BILLS': 'Bills',
-  'EXP_SHOPPING': 'Shopping',
-  'EXP_ENTERTAINMENT': 'Entertainment',
-  'EXP_HEALTH': 'Health',
-  'EXP_EDUCATION': 'Education',
-  'EXP_GIFTS': 'Gifts',
-  'EXP_OTHER': 'Other',
-  'INC_SALARY': 'Salary',
-  'INC_FREELANCE': 'Freelance',
-  'INC_INVESTMENTS': 'Investments',
-  'INC_GIFTS': 'Gifts',
-  'INC_OTHER': 'Income',
-  // Goal categories
-  'GOAL_ELECTRONICS': 'Electronics',
-  'GOAL_TRAVEL': 'Travel',
-  'GOAL_CAR': 'Car',
-  'GOAL_HOME': 'Home',
-  'GOAL_PERSONAL': 'Personal',
-};
+const { getCategoryName, getCategories } = require('../constants/categories');
 
 class TransactionsService {
   list(userId, filters) {
@@ -111,7 +65,8 @@ class TransactionsService {
   }
 
   async addManual(userId, data) {
-    const category = ID_TO_CATEGORY_MAP[data.categoryId] || 'Other';
+    const category = getCategoryName(data.categoryId);
+    if (!category) throw new BadRequestError('Invalid categoryId');
 
     return transactionsRepository.create({
       userId,
@@ -127,53 +82,12 @@ class TransactionsService {
     });
   }
 
-  async parseAi(userId, text) {
-    const parsed = await aiService.parseTransaction({
-      text,
-      defaultCurrency: 'USD', // Could get from user
-      memoryHints: [],
-    });
-
-    // Return suggested transaction data for frontend confirmation
-    return {
-      title: parsed.item || 'Parsed Transaction',
-      amount: parsed.type === 'expense' ? -Math.abs(parsed.amount || 0) : Math.abs(parsed.amount || 0),
-      type: parsed.type || 'expense',
-      categoryId: CATEGORY_ID_MAP[parsed.category] || 'EXP_OTHER',
-      date: new Date().toISOString(),
-      icon: '📦', // Default icon, could map from category
-      confidence: parsed.confidence || 0.5,
-    };
+  async parseAi(text) {
+    return aiService.parseTransactionRaw({ text });
   }
 
   getCategories() {
-    return {
-      expense: [
-        { id: 'EXP_FOOD', name: 'Food & Drinks', icon: '🍔' },
-        { id: 'EXP_TRANSPORT', name: 'Transportation', icon: '🚗' },
-        { id: 'EXP_BILLS', name: 'Bills & Subscriptions', icon: '💡' },
-        { id: 'EXP_SHOPPING', name: 'Shopping', icon: '🛍️' },
-        { id: 'EXP_ENTERTAINMENT', name: 'Entertainment', icon: '🎬' },
-        { id: 'EXP_HEALTH', name: 'Healthcare', icon: '🏥' },
-        { id: 'EXP_EDUCATION', name: 'Education', icon: '📚' },
-        { id: 'EXP_GIFTS', name: 'Gifts & Donations', icon: '🎁' },
-        { id: 'EXP_OTHER', name: 'Other', icon: '📦' },
-      ],
-      income: [
-        { id: 'INC_SALARY', name: 'Salary', icon: '💼' },
-        { id: 'INC_FREELANCE', name: 'Freelance', icon: '💻' },
-        { id: 'INC_INVESTMENTS', name: 'Investments', icon: '📈' },
-        { id: 'INC_GIFTS', name: 'Gifts', icon: '🎁' },
-        { id: 'INC_OTHER', name: 'Other Income', icon: '💰' },
-      ],
-      goals: [
-        { id: 'GOAL_ELECTRONICS', name: 'Electronics', icon: '💻' },
-        { id: 'GOAL_TRAVEL', name: 'Travel', icon: '✈️' },
-        { id: 'GOAL_CAR', name: 'Car', icon: '🚗' },
-        { id: 'GOAL_HOME', name: 'Home', icon: '🏠' },
-        { id: 'GOAL_PERSONAL', name: 'Personal', icon: '💍' },
-      ],
-    };
+    return getCategories();
   }
 
   async calculateSavingsRate(userId, months = 3) {

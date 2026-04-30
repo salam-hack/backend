@@ -9,15 +9,15 @@ const { homeService } = require('../services/home.service');
 const homeRouter = Router();
 
 const dashboardQuerySchema = z.object({
-  user_id: z.string().uuid('Invalid user ID'),
+  userId: z.string().uuid('Invalid user ID'),
 });
 
-// GET /api/home?user_id=1
+// GET /api/home?userId=<uuid>
 homeRouter.get(
   '/',
   validateQuery(dashboardQuerySchema),
   asyncHandler(async (req, res) => {
-    const data = await homeService.getDashboard(req.query.user_id);
+    const data = await homeService.getDashboard(req.query.userId);
     successResponse(res, data);
   }),
 );

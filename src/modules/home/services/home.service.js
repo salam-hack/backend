@@ -1,42 +1,6 @@
 'use strict';
 const { prisma } = require('../../../prisma/client');
-
-// Category to icon mapping
-const CATEGORY_ICONS = {
-  'Food': '🍔',
-  'Transport': '🚗',
-  'Bills': '💡',
-  'Shopping': '🛍️',
-  'Entertainment': '🎬',
-  'Health': '🏥',
-  'Income': '💰',
-  'Salary': '💼',
-  'Other': '📦',
-  // Add more mappings as needed
-};
-
-// Category to ID mapping (matching classification system)
-const CATEGORY_ID_MAP = {
-  'Food': 'EXP_FOOD',
-  'Transport': 'EXP_TRANSPORT',
-  'Bills': 'EXP_BILLS',
-  'Shopping': 'EXP_SHOPPING',
-  'Entertainment': 'EXP_ENTERTAINMENT',
-  'Health': 'EXP_HEALTH',
-  'Education': 'EXP_EDUCATION',
-  'Gifts': 'EXP_GIFTS',
-  'Income': 'INC_OTHER',
-  'Salary': 'INC_SALARY',
-  'Freelance': 'INC_FREELANCE',
-  'Investments': 'INC_INVESTMENTS',
-  'Other': 'EXP_OTHER',
-  // Goal categories
-  'Electronics': 'GOAL_ELECTRONICS',
-  'Travel': 'GOAL_TRAVEL',
-  'Car': 'GOAL_CAR',
-  'Home': 'GOAL_HOME',
-  'Personal': 'GOAL_PERSONAL',
-};
+const { getCategoryId, inferGoalCategoryId } = require('../../transactions/constants/categories');
 
 class HomeService {
   async getDashboard(userId) {
@@ -46,8 +10,7 @@ class HomeService {
       this._getTransactions(userId),
       this._getGoals(userId),
     ]);
-
-    const smartAnalysis = this._getSmartAnalysis();
+    const smartAnalysis = await this._getSmartAnalysis(userId, balance);
 
     return {
       user,
@@ -123,47 +86,35 @@ class HomeService {
   async _getGoals(userId) {
     const savingsData = await this._getSavingsData(userId);
 
-    // Mock goals - no goals table in schema
-    const goals = [
-      {
-        title: 'Emergency Fund',
-        isActive: true,
-        progress: 0.6,
-        savedAmount: 6000,
-        targetAmount: 10000,
-        categoryId: 'GOAL_PERSONAL',
+    const goals = await prisma.goal.findMany({
+      where: { userId },
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        title: true,
+        description: true,
+        targetAmount: true,
+        currentAmount: true,
+        status: true,
+        userExpectedDate: true,
+        systemCalculatedDate: true,
       },
-      {
-        title: 'Vacation to Europe',
-        isActive: true,
-        progress: 0.3,
-        savedAmount: 1500,
-        targetAmount: 5000,
-        categoryId: 'GOAL_TRAVEL',
-      },
-      {
-        title: 'New Laptop',
-        isActive: true,
-        progress: 0.0,
-        savedAmount: 0,
-        targetAmount: 800,
-        categoryId: 'GOAL_ELECTRONICS',
-      },
-    ];
+    });
 
     // Calculate estimated dates and messages based on savings rate
     return goals.map(goal => {
-      const remaining = goal.targetAmount - goal.savedAmount;
+      const savedAmount = Number(goal.currentAmount || 0);
+      const targetAmount = Number(goal.targetAmount || 0);
+      const remaining = targetAmount - savedAmount;
       const monthlySavings = savingsData.monthlySavings;
 
-      let estimatedDate = null;
+      let estimatedDate = goal.systemCalculatedDate || goal.userExpectedDate || null;
       let message = 'Start saving to reach your goal!';
 
       if (monthlySavings > 0 && remaining > 0) {
         const monthsNeeded = Math.ceil(remaining / monthlySavings);
         const estimatedDateObj = new Date();
         estimatedDateObj.setMonth(estimatedDateObj.getMonth() + monthsNeeded);
-        estimatedDate = estimatedDateObj.toISOString().split('T')[0];
+        estimatedDate = estimatedDateObj;
 
         if (monthsNeeded <= 3) {
           message = `Almost there! You can reach this goal in ${monthsNeeded} month${monthsNeeded > 1 ? 's' : ''}.`;
@@ -180,8 +131,13 @@ class HomeService {
       }
 
       return {
-        ...goal,
-        estimatedDate,
+        title: goal.title,
+        isActive: goal.status === 'active',
+        progress: targetAmount > 0 ? Math.min(savedAmount / targetAmount, 1) : 0,
+        savedAmount,
+        targetAmount,
+        categoryId: inferGoalCategoryId(goal),
+        estimatedDate: estimatedDate ? estimatedDate.toISOString().split('T')[0] : null,
         message,
       };
     });
@@ -231,25 +187,45 @@ class HomeService {
     };
   }
 
-  _getSmartAnalysis() {
-    // Mock smart analysis - simple rules or AI would generate this
-    return [
-      {
-        title: 'High spending on food',
-        description: 'Your food expenses are 25% higher than last month. Consider meal planning to save money.',
+  async _getSmartAnalysis(userId, balance) {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const categoryRows = await prisma.transaction.groupBy({
+      by: ['category'],
+      where: {
+        userId,
+        type: 'expense',
+        transactionDate: { gte: startOfMonth },
+      },
+      _sum: { amount: true },
+      orderBy: { _sum: { amount: 'desc' } },
+      take: 1,
+    });
+
+    const analysis = [];
+    const topCategory = categoryRows[0];
+    if (topCategory) {
+      analysis.push({
+        title: `High spending on ${topCategory.category}`,
+        description: `${topCategory.category} is your highest spending category this month.`,
         type: 'warning',
-      },
-      {
-        title: 'Consistent income',
-        description: 'Great job maintaining steady income streams this month.',
-        type: 'positive',
-      },
-      {
-        title: 'Savings opportunity',
-        description: 'You have room to save more. Aim to save 20% of your income.',
-        type: 'suggestion',
-      },
-    ];
+      });
+    }
+
+    if (balance.incomeThisMonth > 0) {
+      const savings = balance.incomeThisMonth - balance.expensesThisMonth;
+      const savingsRate = (savings / balance.incomeThisMonth) * 100;
+
+      analysis.push({
+        title: savingsRate >= 20 ? 'Healthy savings rate' : 'Savings opportunity',
+        description: savingsRate >= 20
+          ? 'You are saving at least 20% of your income this month.'
+          : 'You have room to save more. Aim to save 20% of your income.',
+        type: savingsRate >= 20 ? 'positive' : 'suggestion',
+      });
+    }
+
+    return analysis;
   }
 
   async _getTransactions(userId) {
@@ -273,10 +249,8 @@ class HomeService {
       title: tx.item || tx.notes || 'Transaction',
       amount: Number(tx.amount),
       type: tx.type,
-      category: tx.category,
-      categoryId: CATEGORY_ID_MAP[tx.category] || 'EXP_OTHER',
+      categoryId: getCategoryId(tx.category) || 'EXP_OTHER',
       date: tx.transactionDate.toISOString().split('T')[0], // YYYY-MM-DD
-      icon: CATEGORY_ICONS[tx.category] || '📦',
     }));
   }
 }

@@ -14,6 +14,7 @@ const { notFoundHandler } = require("./common/middleware/not-found-handler");
 const { usersRouter } = require("./modules/users/controllers/users.controller");
 const { aiToolsRouter } = require("./modules/ai/controllers/ai-tools.controller");
 const { homeRouter } = require("./modules/home/controllers/home.controller");
+const { chatRouter } = require("./modules/chat/controllers/chat.controller");
 
  // ─── App instance ─────────────────────────────────────────────────────────────
 
@@ -164,13 +165,12 @@ app.get("/health/ready", async (req, res) => {
     checks.database = { status: "error", message: err.message };
   }
 
-  // ── OpenAI (optional) ─────────────────────────────────────────────────────
-  checks.ai = env.openAiApiKey
-    ? { status: "ok", model: env.openAiModel }
-    : {
-        status: "warn",
-        message: "OPENAI_API_KEY not set — AI features use mock mode",
-      };
+  // ── AI Services (external) ────────────────────────────────────────────────
+  checks.ai = {
+    status: "ok",
+    chatbot_url: env.aiChatbotUrl,
+    parser_url: env.aiParserUrl,
+  };
 
   const httpStatus = allHealthy ? 200 : 503;
 
@@ -218,9 +218,21 @@ app.post(
 
     try {
       const data = await transactionsService.addManual(userId, req.body);
-      res.status(201).json({ success: true, data });
+      res.status(201).json({
+        success: true,
+        data: {
+          id: data.id,
+          title: data.item || data.notes || 'Transaction',
+          amount: Number(data.amount),
+          currency: data.currency,
+          type: data.type,
+          categoryId,
+          date: data.transactionDate.toISOString().split('T')[0],
+          transactionDate: data.transactionDate.toISOString(),
+        },
+      });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      res.status(err.statusCode || 500).json({ error: err.message });
     }
   }
 );
@@ -231,16 +243,16 @@ app.post(
   async (req, res) => {
     const { transactionsService } = require('./modules/transactions/services/transactions.service');
 
-    const { userId, text } = req.body;
-    if (!userId || !text) {
-      return res.status(400).json({ error: 'Missing userId or text' });
+    const message = req.body.message ?? req.body.text;
+    if (!message) {
+      return res.status(400).json({ error: 'Missing message' });
     }
 
     try {
-      const data = await transactionsService.parseAi(userId, text);
-      res.json({ success: true, data });
+      const data = await transactionsService.parseAi(message);
+      res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      res.status(503).json({ error: "AI_PARSER_UNAVAILABLE" });
     }
   }
 );
@@ -262,11 +274,11 @@ app.get(
 app.get(
   "/api/transactions/all",
   async (req, res) => {
-    const { transactionsService } = require('./modules/transactions/services/transactions.service');
     const { prisma } = require('./prisma/client');
+    const { getCategoryId, getCategoryName } = require('./modules/transactions/constants/categories');
 
     try {
-      const { userId, limit = '50', offset = '0', type, category, from, to } = req.query;
+      const { userId, limit = '50', offset = '0', type, category, categoryId, from, to } = req.query;
       const limitNum = parseInt(limit, 10) || 50;
       const offsetNum = parseInt(offset, 10) || 0;
 
@@ -278,6 +290,7 @@ app.get(
       const where = { userId };
       if (type) where.type = type;
       if (category) where.category = category;
+      if (categoryId) where.category = getCategoryName(categoryId) || categoryId;
       if (from || to) {
         where.transactionDate = {};
         if (from) where.transactionDate.gte = new Date(from);
@@ -315,25 +328,13 @@ app.get(
       // Get total count for pagination
       const total = await prisma.transaction.count({ where });
 
-      // Map with categoryId
-      const CATEGORY_ID_MAP = {
-        'Food': 'EXP_FOOD', 'Transport': 'EXP_TRANSPORT', 'Bills': 'EXP_BILLS',
-        'Shopping': 'EXP_SHOPPING', 'Entertainment': 'EXP_ENTERTAINMENT',
-        'Health': 'EXP_HEALTH', 'Education': 'EXP_EDUCATION', 'Gifts': 'EXP_GIFTS',
-        'Other': 'EXP_OTHER', 'Salary': 'INC_SALARY', 'Freelance': 'INC_FREELANCE',
-        'Investments': 'INC_INVESTMENTS', 'Income': 'INC_OTHER',
-        'Electronics': 'GOAL_ELECTRONICS', 'Travel': 'GOAL_TRAVEL',
-        'Car': 'GOAL_CAR', 'Home': 'GOAL_HOME', 'Personal': 'GOAL_PERSONAL',
-      };
-
       const formattedTransactions = transactions.map(tx => ({
         id: tx.id,
         title: tx.item || tx.notes || 'Transaction',
         amount: Number(tx.amount),
         currency: tx.currency,
         type: tx.type,
-        category: tx.category,
-        categoryId: CATEGORY_ID_MAP[tx.category] || 'EXP_OTHER',
+        categoryId: getCategoryId(tx.category) || 'EXP_OTHER',
         item: tx.item,
         quantity: tx.quantity,
         source: tx.source,
@@ -360,7 +361,7 @@ app.get(
             offset: offsetNum,
             hasMore: offsetNum + limitNum < total,
           },
-          filters: { type, category, from, to },
+          filters: { type, category, categoryId, from, to },
         }
       });
     } catch (err) {
@@ -400,6 +401,7 @@ app.use("/internal/v1/users", usersRouter);
 
 // ── AI Internal Tools ─────────────────────────────────────────────────────────
 app.use("/internal/ai-tools", aiToolsRouter);
+app.use("/api/chat", chatRouter);
 
 
 

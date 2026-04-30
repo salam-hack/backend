@@ -33,12 +33,12 @@ The codebase follows clean architecture principles:
 ## API Endpoints
 
 ### Public Endpoints
-- `GET /api/home?user_id=<uuid>` - Dashboard data
-- `POST /api/transactions/add-manual` - Add manual transaction
-- `POST /api/transactions/parse-ai` - Parse transaction from text
+- `GET /api/home?userId=<uuid>` - Dashboard data
+- `POST /api/transactions/add-manual` - Add manual transaction (body requires `userId`, `title`, `amount`, `type`, `categoryId`)
+- `POST /api/transactions/parse-ai` - Parse transaction from text (body requires `userId` and `message` or `text`)
 - `GET /api/transactions/categories` - Get available categories
-- `GET /api/transactions/all` - List transactions with filtering
-- `GET /api/financial/savings-analysis` - Savings rate analysis
+- `GET /api/transactions/all?userId=<uuid>` - List transactions with filtering
+- `GET /api/financial/savings-analysis?userId=<uuid>` - Savings rate analysis
 
 ### User Endpoints
 - `GET /internal/v1/users/me` - Get user profile
@@ -56,7 +56,7 @@ The codebase follows clean architecture principles:
 
 - **Runtime**: Node.js with Express.js
 - **Database**: PostgreSQL with Prisma ORM
-- **AI**: OpenAI integration with mock fallback
+- **AI**: External chatbot and parser services
 - **Validation**: Zod schemas
 - **Security**: Helmet, CORS (configured for development)
 

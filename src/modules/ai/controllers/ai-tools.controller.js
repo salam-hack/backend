@@ -4,8 +4,10 @@ const { Router } = require('express');
 const { z } = require('zod');
 const { asyncHandler } = require('../../../common/middleware/async-handler');
 const { validateBody } = require('../../../common/middleware/validate');
+const { env } = require('../../../config/env');
 const { prisma } = require('../../../prisma/client');
 const { chatService } = require('../../chat/services/chat.service');
+const { aiChatService } = require('../services/ai-chat.service');
 
 const aiToolsRouter = Router();
 
@@ -211,56 +213,13 @@ aiToolsRouter.get('/conversation-all-turns/:conversation_id', asyncHandler(async
   res.status(200).json({ turns });
 }));
 
-const replySchema = z.object({
-  user_id: z.string(),
-  conversation_id: z.string().uuid(),
-  content: z.string().min(1)
-});
-
-// Generate AI reply for a message
-aiToolsRouter.post('/generate-reply', validateBody(replySchema), asyncHandler(async (req, res) => {
-  const { user_id, conversation_id, content } = req.body;
-
-  const conversation = await prisma.conversation.findFirst({
-    where: { id: conversation_id, userId: user_id, status: 'active' }
-  });
-
-  if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
-
-  const userMessage = await prisma.message.create({
-    data: {
-      conversationId: conversation_id,
-      userId: user_id,
-      role: 'user',
-      content,
-      status: 'completed'
-    }
-  });
-
-  const placeholder = await prisma.message.create({
-    data: {
-      conversationId: conversation_id,
-      userId: user_id,
-      role: 'assistant',
-      content: '',
-      status: 'processing'
-    }
-  });
-
-  // Simplified AI call - in real code, this would use aiService
-  const aiReply = { content: 'This is a mock reply', model: 'mock', latencyMs: 100, usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 } };
-
-  const assistantMessage = await prisma.message.update({
-    where: { id: placeholder.id },
-    data: { content: aiReply.content, status: 'completed' }
-  });
-
-  await prisma.conversation.update({
-    where: { id: conversation_id },
-    data: { lastMessageAt: new Date() }
-  });
-
-  res.status(200).json({ assistantMessage });
+aiToolsRouter.get('/current-date', asyncHandler(async (req, res) => {
+  res.json(new Date().toLocaleDateString('ar-EG', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }));
 }));
 
 module.exports = { aiToolsRouter };

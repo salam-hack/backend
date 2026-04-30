@@ -68,6 +68,13 @@ function optionalBool(key, defaultValue) {
   return raw.trim() === "true" || raw.trim() === "1";
 }
 
+function serviceUrl(key, fallback) {
+  const value = optional(key, fallback);
+  return value.startsWith("http://") || value.startsWith("https://")
+    ? value
+    : `https://${value}`;
+}
+
 // ─── Build env object ─────────────────────────────────────────────────────────
 
 /**
@@ -125,11 +132,15 @@ const env = Object.freeze({
   /** Requests per minute for auth routes (stricter). */
   rateLimitAuth: optionalInt("RATE_LIMIT_AUTH", 20),
 
-  // ── OpenAI ────────────────────────────────────────────────────────────────
-  /** Optional — AI features degrade gracefully when absent. */
-  openAiApiKey: optional("OPENAI_API_KEY", ""),
-  openAiBaseUrl: optional("OPENAI_BASE_URL", ""),
-  openAiModel: optional("OPENAI_MODEL", "gpt-4o-mini"),
+  // ── AI Services ───────────────────────────────────────────────────────────
+  aiChatbotUrl: serviceUrl(
+    "AI-CHATBOT_URL",
+    optional("AI_CHATBOT_URL", "http://localhost:8001/chat"),
+  ),
+  aiParserUrl: serviceUrl(
+    "AI-PARSER_URL",
+    optional("AI_PARSER_URL", "https://agent.sell-io.app/parse"),
+  ),
 });
 
 // ─── Validate insecure defaults in production ─────────────────────────────────
