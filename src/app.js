@@ -16,6 +16,7 @@ const { aiToolsRouter } = require("./modules/ai/controllers/ai-tools.controller"
 const { homeRouter } = require("./modules/home/controllers/home.controller");
 const { chatRouter } = require("./modules/chat/controllers/chat.controller");
 const { transactionsRouter } = require("./modules/transactions/controllers/transactions.controller");
+const { insightsRouter } = require("./modules/insights/controllers/insights.controller");
 
  // ─── App instance ─────────────────────────────────────────────────────────────
 
@@ -228,6 +229,9 @@ app.get(
 
 // ── Transactions ────────────────────────────────────────────────────────────
 app.use("/api/transactions", transactionsRouter);
+
+// ── Insights ──────────────────────────────────────────────────────────────────
+app.use("/api/insights", insightsRouter);
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 app.use("/internal/v1/users", usersRouter);

@@ -19,6 +19,44 @@ class ChatService {
   }
 
   /**
+   * Get all conversations for a user, ordered by most recent.
+   */
+  async getUserConversations(userId) {
+    return chatRepository.getUserConversations(userId);
+  }
+
+  /**
+   * Get a conversation's history formatted as turns.
+   */
+  async getConversationTurns(userId, conversationId, limit = 50) {
+    await this._requireOwnership(userId, conversationId);
+
+    const messages = await chatRepository.getRecentMessages(conversationId, limit * 2);
+    
+    // getRecentMessages returns messages ordered by createdAt DESC (newest first).
+    // To build turns correctly, we reverse them so oldest comes first.
+    const reversedMessages = messages.reverse();
+    
+    const turns = [];
+    let currentTurn = null;
+
+    for (const msg of reversedMessages) {
+      if (msg.status !== 'completed') continue;
+
+      if (msg.role === 'user') {
+        if (currentTurn) turns.push(currentTurn);
+        currentTurn = { user: msg.content, assistant: null };
+      } else if (msg.role === 'assistant' && currentTurn) {
+        currentTurn.assistant = msg.content;
+      }
+    }
+
+    if (currentTurn) turns.push(currentTurn);
+
+    return turns;
+  }
+
+  /**
    * Process an inbound user message:
    *
    *  1. Validate conversation ownership.

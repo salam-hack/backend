@@ -44,10 +44,25 @@ class AiChatService {
   }
 
   _extractContent(result) {
-    if (typeof result === "string") return result;
+    // If the python backend returns a stringified JSON
+    if (typeof result === "string") {
+      try {
+        const parsed = JSON.parse(result);
+        if (typeof parsed?.reply === "string") return parsed.reply;
+        if (typeof parsed?.content === "string") return parsed.content;
+      } catch (e) {
+        // ignore and just return the string
+      }
+      return result;
+    }
+    
+    // If it's a standard JS object
+    if (typeof result?.reply === "string") return result.reply;
     if (typeof result?.content === "string") return result.content;
     if (typeof result?.message === "string") return result.message;
-    if (result?.data !== undefined) return JSON.stringify(result.data);
+    if (result?.data !== undefined) {
+      return typeof result.data === 'string' ? result.data : JSON.stringify(result.data);
+    }
     return JSON.stringify(result);
   }
 }

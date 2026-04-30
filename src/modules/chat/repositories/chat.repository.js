@@ -12,6 +12,23 @@ class ChatRepository {
   }
 
   /**
+   * Get all active conversations for a user.
+   */
+  getUserConversations(userId) {
+    return prisma.conversation.findMany({
+      where: { userId, status: "active" },
+      select: {
+        id: true,
+        title: true,
+        summary: true,
+        createdAt: true,
+        lastMessageAt: true
+      },
+      orderBy: { updatedAt: "desc" }
+    });
+  }
+
+  /**
    * Create a new conversation for a user.
    */
   createConversation(userId, title = "New Chat") {
