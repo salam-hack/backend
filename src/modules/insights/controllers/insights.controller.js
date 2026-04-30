@@ -4,22 +4,22 @@ const { z } = require('zod');
 const { asyncHandler } = require('../../../common/middleware/async-handler');
 const { validateBody } = require('../../../common/middleware/validate');
 const { successResponse } = require('../../../common/utils/response');
-const { homeService } = require('../services/home.service');
+const { insightsService } = require('../services/insights.service');
 
-const homeRouter = Router();
+const insightsRouter = Router();
 
-const dashboardSchema = z.object({
+const insightsSchema = z.object({
   userId: z.string().uuid('Invalid user ID'),
 });
 
-// POST /api/home
-homeRouter.post(
+// POST /api/insights
+insightsRouter.post(
   '/',
-  validateBody(dashboardSchema),
+  validateBody(insightsSchema),
   asyncHandler(async (req, res) => {
-    const data = await homeService.getDashboard(req.body.userId);
+    const data = await insightsService.getInsights(req.body.userId);
     successResponse(res, data);
   }),
 );
 
-module.exports = { homeRouter };
+module.exports = { insightsRouter };

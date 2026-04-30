@@ -14,6 +14,9 @@ const { notFoundHandler } = require("./common/middleware/not-found-handler");
 const { usersRouter } = require("./modules/users/controllers/users.controller");
 const { aiToolsRouter } = require("./modules/ai/controllers/ai-tools.controller");
 const { homeRouter } = require("./modules/home/controllers/home.controller");
+const { chatRouter } = require("./modules/chat/controllers/chat.controller");
+const { transactionsRouter } = require("./modules/transactions/controllers/transactions.controller");
+const { insightsRouter } = require("./modules/insights/controllers/insights.controller");
 
  // ─── App instance ─────────────────────────────────────────────────────────────
 
@@ -164,13 +167,12 @@ app.get("/health/ready", async (req, res) => {
     checks.database = { status: "error", message: err.message };
   }
 
-  // ── OpenAI (optional) ─────────────────────────────────────────────────────
-  checks.ai = env.openAiApiKey
-    ? { status: "ok", model: env.openAiModel }
-    : {
-        status: "warn",
-        message: "OPENAI_API_KEY not set — AI features use mock mode",
-      };
+  // ── AI Services (external) ────────────────────────────────────────────────
+  checks.ai = {
+    status: "ok",
+    chatbot_url: env.aiChatbotUrl,
+    parser_url: env.aiParserUrl,
+  };
 
   const httpStatus = allHealthy ? 200 : 503;
 
@@ -199,181 +201,11 @@ app.get("/health/ready", async (req, res) => {
 // ── Home Dashboard ────────────────────────────────────────────────────────────
 app.use("/api/home", homeRouter);
 
-// ── Public Transaction Endpoints ───────────────────────────────────────────────
-
-// Public endpoints for frontend
-app.post(
-  "/api/transactions/add-manual",
-  require("express").json(),
-  async (req, res) => {
-    const { asyncHandler } = require('./common/middleware/async-handler');
-    const { successResponse } = require('./common/utils/response');
-    const { transactionsService } = require('./modules/transactions/services/transactions.service');
-
-    // Simple validation
-    const { userId, title, amount, type, categoryId, date } = req.body;
-    if (!userId || !title || !amount || !type || !categoryId) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    try {
-      const data = await transactionsService.addManual(userId, req.body);
-      res.status(201).json({ success: true, data });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  }
-);
-
-app.post(
-  "/api/transactions/parse-ai",
-  require("express").json(),
-  async (req, res) => {
-    const { transactionsService } = require('./modules/transactions/services/transactions.service');
-
-    const { userId, text } = req.body;
-    if (!userId || !text) {
-      return res.status(400).json({ error: 'Missing userId or text' });
-    }
-
-    try {
-      const data = await transactionsService.parseAi(userId, text);
-      res.json({ success: true, data });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  }
-);
-
-app.get(
-  "/api/transactions/categories",
-  async (req, res) => {
-    const { transactionsService } = require('./modules/transactions/services/transactions.service');
-
-    try {
-      const categories = transactionsService.getCategories();
-      res.json({ success: true, data: categories });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  }
-);
-
-app.get(
-  "/api/transactions/all",
-  async (req, res) => {
-    const { transactionsService } = require('./modules/transactions/services/transactions.service');
-    const { prisma } = require('./prisma/client');
-
-    try {
-      const { userId, limit = '50', offset = '0', type, category, from, to } = req.query;
-      const limitNum = parseInt(limit, 10) || 50;
-      const offsetNum = parseInt(offset, 10) || 0;
-
-      if (!userId) {
-        return res.status(400).json({ error: 'userId is required' });
-      }
-
-      // Build where clause
-      const where = { userId };
-      if (type) where.type = type;
-      if (category) where.category = category;
-      if (from || to) {
-        where.transactionDate = {};
-        if (from) where.transactionDate.gte = new Date(from);
-        if (to) where.transactionDate.lte = new Date(to);
-      }
-
-      const transactions = await prisma.transaction.findMany({
-        where,
-        orderBy: { transactionDate: 'desc' },
-        take: limitNum,
-        skip: offsetNum,
-        select: {
-          id: true,
-          amount: true,
-          currency: true,
-          category: true,
-          item: true,
-          quantity: true,
-          type: true,
-          source: true,
-          rawText: true,
-          confidence: true,
-          notes: true,
-          transactionDate: true,
-          createdAt: true,
-          rawNote: {
-            select: {
-              content: true,
-              status: true
-            }
-          }
-        }
-      });
-
-      // Get total count for pagination
-      const total = await prisma.transaction.count({ where });
-
-      // Map with categoryId
-      const CATEGORY_ID_MAP = {
-        'Food': 'EXP_FOOD', 'Transport': 'EXP_TRANSPORT', 'Bills': 'EXP_BILLS',
-        'Shopping': 'EXP_SHOPPING', 'Entertainment': 'EXP_ENTERTAINMENT',
-        'Health': 'EXP_HEALTH', 'Education': 'EXP_EDUCATION', 'Gifts': 'EXP_GIFTS',
-        'Other': 'EXP_OTHER', 'Salary': 'INC_SALARY', 'Freelance': 'INC_FREELANCE',
-        'Investments': 'INC_INVESTMENTS', 'Income': 'INC_OTHER',
-        'Electronics': 'GOAL_ELECTRONICS', 'Travel': 'GOAL_TRAVEL',
-        'Car': 'GOAL_CAR', 'Home': 'GOAL_HOME', 'Personal': 'GOAL_PERSONAL',
-      };
-
-      const formattedTransactions = transactions.map(tx => ({
-        id: tx.id,
-        title: tx.item || tx.notes || 'Transaction',
-        amount: Number(tx.amount),
-        currency: tx.currency,
-        type: tx.type,
-        category: tx.category,
-        categoryId: CATEGORY_ID_MAP[tx.category] || 'EXP_OTHER',
-        item: tx.item,
-        quantity: tx.quantity,
-        source: tx.source,
-        rawText: tx.rawText,
-        confidence: tx.confidence,
-        notes: tx.notes,
-        date: tx.transactionDate.toISOString().split('T')[0],
-        time: tx.transactionDate.toISOString().split('T')[1].split('.')[0],
-        transactionDate: tx.transactionDate.toISOString(),
-        createdAt: tx.createdAt.toISOString(),
-        rawNote: tx.rawNote ? {
-          content: tx.rawNote.content,
-          status: tx.rawNote.status,
-        } : null,
-      }));
-
-      res.json({
-        success: true,
-        data: {
-          transactions: formattedTransactions,
-          pagination: {
-            total,
-            limit: limitNum,
-            offset: offsetNum,
-            hasMore: offsetNum + limitNum < total,
-          },
-          filters: { type, category, from, to },
-        }
-      });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  }
-);
-
+// ── Financial Analysis ────────────────────────────────────────────────────────
 app.get(
   "/api/financial/savings-analysis",
   async (req, res) => {
     const { transactionsService } = require('./modules/transactions/services/transactions.service');
-    const { prisma } = require('./prisma/client');
 
     try {
       const { userId, months = '3' } = req.query;
@@ -395,11 +227,18 @@ app.get(
   }
 );
 
+// ── Transactions ────────────────────────────────────────────────────────────
+app.use("/api/transactions", transactionsRouter);
+
+// ── Insights ──────────────────────────────────────────────────────────────────
+app.use("/api/insights", insightsRouter);
+
 // ── Users ─────────────────────────────────────────────────────────────────────
 app.use("/internal/v1/users", usersRouter);
 
 // ── AI Internal Tools ─────────────────────────────────────────────────────────
 app.use("/internal/ai-tools", aiToolsRouter);
+app.use("/api/chat", chatRouter);
 
 
 

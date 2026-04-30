@@ -33,30 +33,108 @@ The codebase follows clean architecture principles:
 ## API Endpoints
 
 ### Public Endpoints
-- `GET /api/home?user_id=<uuid>` - Dashboard data
-- `POST /api/transactions/add-manual` - Add manual transaction
-- `POST /api/transactions/parse-ai` - Parse transaction from text
-- `GET /api/transactions/categories` - Get available categories
-- `GET /api/transactions/all` - List transactions with filtering
-- `GET /api/financial/savings-analysis` - Savings rate analysis
+
+- **Dashboard Data**
+  - `POST /api/home`
+  - **Body**:
+    - `userId` (Required, UUID)
+
+- **Add Manual Transaction**
+  - `POST /api/transactions/add-manual`
+  - **Body**:
+    - `userId` (Required, UUID)
+    - `title` (Required, String)
+    - `amount` (Required, Number)
+    - `type` (Required, "income" | "expense")
+    - `categoryId` (Required, String, e.g., "EXP_FOOD")
+    - `date` (Optional, ISO Date String)
+    - `conversationId` (Optional, UUID) - If provided, returns an AI confirmation message.
+  - **Response**: Returns transaction `data` and root-level `assistantMessage`.
+
+- **AI Transaction Parser**
+  - `POST /api/transactions/parse-ai`
+  - **Body**:
+    - `userId` (Required, UUID)
+    - `message` or `text` (Required, String)
+
+- **Get Categories**
+  - `GET /api/transactions/categories`
+
+- **List Transactions**
+  - `GET /api/transactions/all`
+  - **Query Params**:
+    - `userId` (Required, UUID)
+    - `limit` (Optional, Number)
+    - `offset` (Optional, Number)
+    - `type` (Optional, "income" | "expense")
+    - `from`/`to` (Optional, ISO Date)
+
+- **Savings Analysis**
+  - `GET /api/financial/savings-analysis?userId=<uuid>`
+
+- **Financial Insights**
+  - `POST /api/insights`
+  - **Body**:
+    - `userId` (Required, UUID)
+  - **Response**: Returns an array of customized alerts (daily, weekly, monthly) based on the user's spending behavior.
+
+- **Send Chat Message**
+  - `POST /api/chat/send`
+  - **Body**:
+    - `userId` (Required, UUID)
+    - `conversationId` (Required, UUID)
+    - `message` (Required, String)
+  - **Response**: Returns root-level `assistantMessage`.
+
+- **Create New Conversation**
+  - `POST /api/chat/new`
+  - **Body**:
+    - `userId` (Required, UUID)
+    - `title` (Optional, String)
+
+- **List All Conversations**
+  - `POST /api/chat/list`
+  - **Body**:
+    - `userId` (Required, UUID)
+  - **Description**: Returns a list of all active conversations, where `title` is the AI-generated `summary`.
+  - **Response**: `[ { id, title, createdAt, lastMessageAt }, ... ]`
+
+- **Get Conversation Turns**
+  - `POST /api/chat/:conversationId/turns`
+  - **Body**:
+    - `userId` (Required, UUID)
+    - `limit` (Optional, Number, default: 50)
+  - **Description**: Returns the conversation history formatted as a list of turns.
+  - **Response**: `[ { user: "message", assistant: "reply" }, ... ]`
 
 ### User Endpoints
-- `GET /internal/v1/users/me` - Get user profile
-- `PATCH /internal/v1/users/me` - Update user profile
+
+- **Get Profile**
+  - `GET /internal/v1/users/me`
+
+- **Update Profile**
+  - `PATCH /internal/v1/users/me`
+  - **Body**:
+    - `name` (Optional)
+    - `email` (Optional)
+    - `locale` (Optional)
+    - `timezone` (Optional)
+    - `defaultCurrency` (Optional)
 
 ### AI Tools (Internal Use)
-- `GET /internal/ai-tools/user-profile/:user_id` - Financial profile for AI
-- `GET /internal/ai-tools/conversation-summary/:conversation_id` - Chat summary
-- `PATCH /internal/ai-tools/conversation-summary/:conversation_id` - Update summary
-- `GET /internal/ai-tools/conversation-turns/:conversation_id` - Conversation turns
-- `GET /internal/ai-tools/current-date` - Current date
-- `POST /internal/ai-tools/generate-reply` - Generate AI response
+
+- `GET /internal/ai-tools/user-profile/:user_id`
+- `GET /internal/ai-tools/conversation-summary/:conversation_id?userId=<uuid>`
+- `PATCH /internal/ai-tools/conversation-summary/:conversation_id?userId=<uuid>`
+  - **Body**: `summary` (Required)
+- `GET /internal/ai-tools/conversation-turns/:conversation_id?userId=<uuid>`
+- `GET /internal/ai-tools/current-date`
 
 ## Technology Stack
 
 - **Runtime**: Node.js with Express.js
 - **Database**: PostgreSQL with Prisma ORM
-- **AI**: OpenAI integration with mock fallback
+- **AI**: External chatbot and parser services
 - **Validation**: Zod schemas
 - **Security**: Helmet, CORS (configured for development)
 
@@ -96,6 +174,10 @@ The API will be available at `http://localhost:3000` (or your configured PORT).
 Currently disabled for easy testing. All endpoints are publicly accessible with user context provided via:
 - `X-User-Id` header, or
 - Default test user if no header provided
+
+## Currency
+
+The application defaults to **Egyptian Pound (EGP)** for the MVP. This can be configured via the `DEFAULT_CURRENCY` environment variable.
 
 ## Health Checks
 

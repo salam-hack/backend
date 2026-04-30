@@ -7,6 +7,7 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
+    "prestart": "npx prisma db push --accept-data-loss",
     "start": "node src/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
@@ -16,16 +17,12 @@
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",
-    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.0.0",
-    "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
-    "openai": "^4.77.0",
-    "multer": "^2.0.0",
     "uuid": "^11.0.3",
     "zod": "^3.24.1"
   },
@@ -42,5 +39,8 @@
       "node_modules"
     ],
     "delay": 500
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   }
 }
