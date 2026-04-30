@@ -2,10 +2,10 @@
 
 set -e
 
-echo "🚀 Running migrations..."
+echo "Running migrations..."
 
 npx prisma migrate deploy
 
-echo "🚀 Starting backend..."
+echo "Starting backend..."
 
 npm start
