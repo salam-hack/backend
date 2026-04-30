@@ -4,7 +4,7 @@ set -e
 
 echo "Waiting for database..."
 
-until npx prisma db execute --stdin < /dev/null; do
+until pg_isready -h db -p 5432 -U postgres; do
   echo "DB not ready yet... retrying"
   sleep 2
 done
@@ -12,7 +12,7 @@ done
 echo "Running migrations..."
 npx prisma migrate deploy
 
-echo "Seeding database (if needed)..."
+echo "Seeding database..."
 npx prisma db seed || true
 
 echo "Starting backend..."
