@@ -33,27 +33,81 @@ The codebase follows clean architecture principles:
 ## API Endpoints
 
 ### Public Endpoints
-- `GET /api/home?userId=<uuid>` - Dashboard data
-- `POST /api/transactions/add-manual` - Add manual transaction (body requires `userId`, `title`, `amount`, `type`, `categoryId`). 
-  - **Response**: Returns the transaction `data` and a root-level `assistantMessage` object.
-- `POST /api/transactions/parse-ai` - Parse transaction from text (body requires `userId` and `message` or `text`)
-- `GET /api/transactions/categories` - Get available categories
-- `GET /api/transactions/all?userId=<uuid>` - List transactions with filtering
-- `GET /api/financial/savings-analysis?userId=<uuid>` - Savings rate analysis
-- `POST /api/chat/send` - Generate AI response with conversation context.
-  - **Response**: Returns a root-level `assistantMessage` object.
+
+- **Dashboard Data**
+  - `POST /api/home`
+  - **Body**:
+    - `userId` (Required, UUID)
+
+- **Add Manual Transaction**
+  - `POST /api/transactions/add-manual`
+  - **Body**:
+    - `userId` (Required, UUID)
+    - `title` (Required, String)
+    - `amount` (Required, Number)
+    - `type` (Required, "income" | "expense")
+    - `categoryId` (Required, String, e.g., "EXP_FOOD")
+    - `date` (Optional, ISO Date String)
+    - `conversationId` (Optional, UUID) - If provided, returns an AI confirmation message.
+  - **Response**: Returns transaction `data` and root-level `assistantMessage`.
+
+- **AI Transaction Parser**
+  - `POST /api/transactions/parse-ai`
+  - **Body**:
+    - `userId` (Required, UUID)
+    - `message` or `text` (Required, String)
+
+- **Get Categories**
+  - `GET /api/transactions/categories`
+
+- **List Transactions**
+  - `GET /api/transactions/all`
+  - **Query Params**:
+    - `userId` (Required, UUID)
+    - `limit` (Optional, Number)
+    - `offset` (Optional, Number)
+    - `type` (Optional, "income" | "expense")
+    - `from`/`to` (Optional, ISO Date)
+
+- **Savings Analysis**
+  - `GET /api/financial/savings-analysis?userId=<uuid>`
+
+- **Send Chat Message**
+  - `POST /api/chat/send`
+  - **Body**:
+    - `userId` (Required, UUID)
+    - `conversationId` (Required, UUID)
+    - `message` (Required, String)
+  - **Response**: Returns root-level `assistantMessage`.
+
+- **Create New Conversation**
+  - `POST /api/chat/new`
+  - **Body**:
+    - `userId` (Required, UUID)
+    - `title` (Optional, String)
 
 ### User Endpoints
-- `GET /internal/v1/users/me` - Get user profile
-- `PATCH /internal/v1/users/me` - Update user profile
+
+- **Get Profile**
+  - `GET /internal/v1/users/me`
+
+- **Update Profile**
+  - `PATCH /internal/v1/users/me`
+  - **Body**:
+    - `name` (Optional)
+    - `email` (Optional)
+    - `locale` (Optional)
+    - `timezone` (Optional)
+    - `defaultCurrency` (Optional)
 
 ### AI Tools (Internal Use)
-- `GET /internal/ai-tools/user-profile/:user_id` - Financial profile for AI
-- `GET /internal/ai-tools/conversation-summary/:conversation_id` - Chat summary
-- `PATCH /internal/ai-tools/conversation-summary/:conversation_id` - Update summary
-- `GET /internal/ai-tools/conversation-turns/:conversation_id` - Conversation turns
-- `GET /internal/ai-tools/current-date` - Current date
-- `POST /api/chat/send` - Generate AI response
+
+- `GET /internal/ai-tools/user-profile/:user_id`
+- `GET /internal/ai-tools/conversation-summary/:conversation_id?userId=<uuid>`
+- `PATCH /internal/ai-tools/conversation-summary/:conversation_id?userId=<uuid>`
+  - **Body**: `summary` (Required)
+- `GET /internal/ai-tools/conversation-turns/:conversation_id?userId=<uuid>`
+- `GET /internal/ai-tools/current-date`
 
 ## Technology Stack
 

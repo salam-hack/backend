@@ -2,128 +2,21 @@
 
 const {
   NotFoundError,
-  ForbiddenError,
 } = require("../../../common/errors/http-error");
-const { prisma } = require("../../../prisma/client");
 const { aiChatService } = require("../../ai/services/ai-chat.service");
 const { chatRepository } = require("../repositories/chat.repository");
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 class ChatService {
-  // ══════════════════════════════════════════════════════════════════════════
-  //  Conversation operations
-  // ══════════════════════════════════════════════════════════════════════════
-
   /**
-   * Create a new conversation for the authenticated user.
-   *
+   * Create a new conversation.
    * @param {string} userId
-   * @param {string|undefined} title  Optional; defaults to "New Chat".
-   * @returns {Promise<Conversation>}
-   */
-  createConversation(userId, title) {
-    const safeTitle = (title ?? "New Chat").trim() || "New Chat";
-    return chatRepository.createConversation(userId, safeTitle);
-  }
-
-  /**
-   * List all active conversations for a user with pagination.
-   * Each item includes message count and last-message preview.
-   *
-   * @param {string} userId
-   * @param {{ limit?: number, offset?: number }} pagination
-   */
-  listConversations(userId, pagination = {}) {
-    return chatRepository.listConversations(userId, pagination);
-  }
-
-  /**
-   * Return a single conversation, enforcing ownership.
-   *
-   * @param {string} userId
-   * @param {string} conversationId
-   */
-  async getConversation(userId, conversationId) {
-    const conv = await chatRepository.findConversation(conversationId, userId);
-    if (!conv) throw new NotFoundError("Conversation not found");
-    return conv;
-  }
-
-  /**
-   * Rename a conversation.
-   *
-   * @param {string} userId
-   * @param {string} conversationId
    * @param {string} title
    */
-  async renameConversation(userId, conversationId, title) {
-    await this._requireOwnership(userId, conversationId);
-    return chatRepository.updateConversation(conversationId, {
-      title: title.trim(),
-    });
+  async createConversation(userId, title) {
+    return chatRepository.createConversation(userId, title);
   }
-
-  /**
-   * Soft-delete: mark the conversation as archived.
-   * Archived conversations are excluded from the default list.
-   *
-   * @param {string} userId
-   * @param {string} conversationId
-   */
-  async archiveConversation(userId, conversationId) {
-    await this._requireOwnership(userId, conversationId);
-    return chatRepository.updateConversation(conversationId, {
-      status: "archived",
-    });
-  }
-
-  /**
-   * Hard-delete a conversation and all its messages (cascades via FK).
-   * Irreversible — use archiveConversation for soft-delete.
-   *
-   * @param {string} userId
-   * @param {string} conversationId
-   */
-  async deleteConversation(userId, conversationId) {
-    await this._requireOwnership(userId, conversationId);
-    await chatRepository.deleteConversation(conversationId);
-    return { deleted: true, conversationId };
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  //  Message operations
-  // ══════════════════════════════════════════════════════════════════════════
-
-  /**
-   * Retrieve messages for a conversation with offset pagination.
-   *
-   * @param {string} userId
-   * @param {string} conversationId
-   * @param {{ limit?: number, offset?: number }} pagination
-   */
-  async listMessages(userId, conversationId, pagination = {}) {
-    await this._requireOwnership(userId, conversationId);
-    return chatRepository.listMessages(conversationId, pagination);
-  }
-
-  /**
-   * Cursor-based history load — "load messages before X".
-   * Used for infinite-scroll going upward in the chat UI.
-   *
-   * @param {string} userId
-   * @param {string} conversationId
-   * @param {{ cursor?: string, limit?: number }} opts
-   *   cursor — id of the oldest message already rendered on the client
-   */
-  async listMessagesBefore(userId, conversationId, opts = {}) {
-    await this._requireOwnership(userId, conversationId);
-    return chatRepository.listMessagesBefore(conversationId, opts);
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  //  Send message  (core orchestration)
-  // ══════════════════════════════════════════════════════════════════════════
 
   /**
    * Process an inbound user message:
@@ -134,8 +27,6 @@ class ChatService {
    *  4. Forward chat history to the external AI chatbot service.
    *  5. Update the placeholder with the external response.
    *  6. Stamp conversation.lastMessageAt.
-   *
-   * Steps 3-7 keep the user message always saved even if AI fails.
    *
    * @param {string} userId
    * @param {string} conversationId
@@ -195,12 +86,6 @@ class ChatService {
 
   /**
    * Ensure the conversation exists and belongs to userId.
-   * Throws NotFoundError otherwise (we use 404, not 403, to avoid leaking
-   * whether the conversation exists at all).
-   *
-   * @param {string} userId
-   * @param {string} conversationId
-   * @returns {Promise<Conversation>}
    */
   async _requireOwnership(userId, conversationId) {
     const conv = await chatRepository.findConversation(conversationId, userId);
@@ -254,8 +139,6 @@ class ChatService {
     return { assistantMessage, aiReply };
   }
 }
-
-// ─── Singleton export ─────────────────────────────────────────────────────────
 
 const chatService = new ChatService();
 module.exports = { chatService };

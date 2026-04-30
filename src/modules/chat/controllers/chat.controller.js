@@ -14,6 +14,24 @@ const sendMessageSchema = z.object({
   message: z.string().min(1)
 });
 
+const createConversationSchema = z.object({
+  userId: z.string(),
+  title: z.string().optional()
+});
+
+/**
+ * POST /api/chat/new
+ * Create a new conversation.
+ */
+chatRouter.post('/new', validateBody(createConversationSchema), asyncHandler(async (req, res) => {
+  const { userId, title } = req.body;
+  const conversation = await chatService.createConversation(userId, title);
+  res.status(201).json({
+    success: true,
+    data: conversation
+  });
+}));
+
 /**
  * POST /api/chat/send
  * Main entry point for user messages.
@@ -27,31 +45,6 @@ chatRouter.post('/send', validateBody(sendMessageSchema), asyncHandler(async (re
   res.status(200).json({
     assistantMessage: result.assistantMessage
   });
-}));
-
-/**
- * GET /api/chat/conversations
- * List conversations for a user.
- */
-chatRouter.get('/conversations', asyncHandler(async (req, res) => {
-  const { userId } = req.query;
-  if (!userId) return res.status(400).json({ error: 'userId query param is required' });
-
-  const conversations = await chatService.listConversations(userId);
-  res.json({ success: true, data: conversations });
-}));
-
-/**
- * GET /api/chat/messages/:conversationId
- * List messages in a conversation.
- */
-chatRouter.get('/messages/:conversationId', asyncHandler(async (req, res) => {
-  const { conversationId } = req.params;
-  const { userId } = req.query;
-  if (!userId) return res.status(400).json({ error: 'userId query param is required' });
-
-  const messages = await chatService.listMessages(userId, conversationId);
-  res.json({ success: true, data: messages });
 }));
 
 module.exports = { chatRouter };

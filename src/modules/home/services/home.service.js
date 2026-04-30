@@ -232,7 +232,7 @@ class HomeService {
     const transactions = await prisma.transaction.findMany({
       where: { userId },
       orderBy: { transactionDate: 'desc' },
-      take: 10,
+      take: 3,
       select: {
         id: true,
         item: true,

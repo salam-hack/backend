@@ -2,22 +2,22 @@
 const { Router } = require('express');
 const { z } = require('zod');
 const { asyncHandler } = require('../../../common/middleware/async-handler');
-const { validateQuery } = require('../../../common/middleware/validate');
+const { validateBody } = require('../../../common/middleware/validate');
 const { successResponse } = require('../../../common/utils/response');
 const { homeService } = require('../services/home.service');
 
 const homeRouter = Router();
 
-const dashboardQuerySchema = z.object({
+const dashboardSchema = z.object({
   userId: z.string().uuid('Invalid user ID'),
 });
 
-// GET /api/home?userId=<uuid>
-homeRouter.get(
+// POST /api/home
+homeRouter.post(
   '/',
-  validateQuery(dashboardQuerySchema),
+  validateBody(dashboardSchema),
   asyncHandler(async (req, res) => {
-    const data = await homeService.getDashboard(req.query.userId);
+    const data = await homeService.getDashboard(req.body.userId);
     successResponse(res, data);
   }),
 );
