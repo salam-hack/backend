@@ -126,7 +126,10 @@ class ChatRepository {
   async getRecentMessages(conversationId, limit = 20) {
     const rows = await prisma.message.findMany({
       where: { conversationId },
-      orderBy: { createdAt: "desc" },
+      orderBy: [
+        { createdAt: "desc" },
+        { role: "asc" } // 'assistant' (a) < 'user' (u). In desc createdAt, role asc puts assistant first if T is same. Then reverse() puts user first.
+      ],
       take: limit,
       select: {
         role: true,
