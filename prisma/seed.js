@@ -48,23 +48,19 @@ async function main() {
   await prisma.goal.create({
     data: {
       userId: amirId,
-      title: 'شراء MacBook Pro',
-      targetAmount: 80000,
-      currentAmount: 20000,
+      title: 'شراء حاسوب محمول (MacBook Pro)',
+      targetAmount: 85000,
+      currentAmount: 25000,
       status: 'active'
     }
   });
 
   // 5. Create Transactions for Amir to match calculations
-  // Target: Income = 20000, Expense = 4600 this month.
-  // Average Savings over 3 months = 6000 (so 60k remaining / 6k = 10 months).
-  // Total savings needed = 18000. This month savings = 15400. Need 2600 from previous 2 months.
-  
   const amirTransactions = [
-    // --- Current Month ---
+    // --- الشهر الحالي ---
     {
       userId: amirId,
-      amount: 20000,
+      amount: 25000,
       currency: 'EGP',
       category: 'Salary',
       item: 'الراتب الشهري',
@@ -74,38 +70,48 @@ async function main() {
     },
     {
       userId: amirId,
-      amount: 150,
+      amount: 200,
       currency: 'EGP',
       category: 'Entertainment',
-      item: 'نتفليكس',
+      item: 'اشتراك نتفليكس',
       type: 'expense',
       transactionDate: today,
       source: 'manual'
     },
     {
       userId: amirId,
-      amount: 450,
+      amount: 1200,
       currency: 'EGP',
       category: 'Groceries',
-      item: 'كارفور',
+      item: 'مشتريات من كارفور',
       type: 'expense',
       transactionDate: yesterday,
       source: 'manual'
     },
     {
       userId: amirId,
-      amount: 4000,
+      amount: 5500,
       currency: 'EGP',
       category: 'Housing',
-      item: 'إيجار السكن',
+      item: 'إيجار الشقة',
       type: 'expense',
       transactionDate: new Date(now.getFullYear(), now.getMonth(), 5),
       source: 'manual'
     },
-    // --- Last Month (Income: 10000, Expense: 8700 -> Savings: 1300) ---
     {
       userId: amirId,
-      amount: 10000,
+      amount: 450,
+      currency: 'EGP',
+      category: 'Utilities',
+      item: 'فاتورة الكهرباء والغاز',
+      type: 'expense',
+      transactionDate: new Date(now.getFullYear(), now.getMonth(), 10),
+      source: 'manual'
+    },
+    // --- الشهر الماضي ---
+    {
+      userId: amirId,
+      amount: 25000,
       currency: 'EGP',
       category: 'Salary',
       item: 'الراتب الشهري',
@@ -115,18 +121,18 @@ async function main() {
     },
     {
       userId: amirId,
-      amount: 8700,
+      amount: 15000,
       currency: 'EGP',
-      category: 'Housing',
-      item: 'مصروفات ومشتريات',
+      category: 'Personal',
+      item: 'مصاريف متنوعة وتسوق',
       type: 'expense',
       transactionDate: lastMonth,
       source: 'manual'
     },
-    // --- Two Months Ago (Income: 10000, Expense: 8700 -> Savings: 1300) ---
+    // --- قبل شهرين ---
     {
       userId: amirId,
-      amount: 10000,
+      amount: 25000,
       currency: 'EGP',
       category: 'Salary',
       item: 'الراتب الشهري',
@@ -136,10 +142,10 @@ async function main() {
     },
     {
       userId: amirId,
-      amount: 8700,
+      amount: 16000,
       currency: 'EGP',
       category: 'Housing',
-      item: 'مصروفات ومشتريات',
+      item: 'تكاليف المعيشة والإيجار',
       type: 'expense',
       transactionDate: twoMonthsAgo,
       source: 'manual'
@@ -149,9 +155,22 @@ async function main() {
   await prisma.transaction.createMany({ data: amirTransactions });
   console.log('Seeded Amir Yousry perfectly!');
 
-  // 6. Generate 9 random users
-  const firstNames = ['أحمد', 'محمد', 'سارة', 'فاطمة', 'عمر', 'خالد', 'نورة', 'مريم', 'يوسف'];
-  const lastNames = ['علي', 'حسن', 'عبدالله', 'إبراهيم', 'سعيد', 'محمود', 'طارق', 'عادل', 'سامي'];
+  // 6. Create Judge User (Fresh account for testing)
+  const judgeId = '00000000-0000-0000-0000-000000000000';
+  await prisma.user.create({
+    data: {
+      id: judgeId,
+      name: 'المستخدم التجريبي (لجنة التحكيم)',
+      email: 'judge@salamhack.com',
+      passwordHash: 'judge_access_only',
+      defaultCurrency: 'EGP',
+    }
+  });
+  console.log('Seeded Judge User (Empty Account)!');
+
+  // 7. Generate 9 random users
+  const firstNames = ['أحمد', 'محمد', 'سارة', 'ياسين', 'عمر', 'خالد', 'مريم', 'ليلى', 'يوسف'];
+  const lastNames = ['محمود', 'حسن', 'عبد العزيز', 'إبراهيم', 'مصطفى', 'رمضان', 'سليمان', 'عادل', 'بكر'];
 
   for (let i = 0; i < 9; i++) {
     const userId = uuidv4();
@@ -171,17 +190,17 @@ async function main() {
     await prisma.goal.create({
       data: {
         userId: userId,
-        title: i % 2 === 0 ? 'سيارة جديدة' : 'عطلة صيفية',
-        targetAmount: 50000 + (Math.random() * 50000),
-        currentAmount: 10000 + (Math.random() * 20000),
+        title: i % 2 === 0 ? 'توفير لشراء سيارة' : 'رحلة سياحية صيفية',
+        targetAmount: 150000 + (Math.random() * 100000),
+        currentAmount: 20000 + (Math.random() * 30000),
         status: 'active'
       }
     });
 
     // Random Transactions (Current Month)
-    const randomIncome = 10000 + (Math.random() * 15000);
-    const randomExpense1 = 2000 + (Math.random() * 3000);
-    const randomExpense2 = 500 + (Math.random() * 1000);
+    const randomIncome = 12000 + (Math.random() * 18000);
+    const randomExpense1 = 3000 + (Math.random() * 4000);
+    const randomExpense2 = 800 + (Math.random() * 1500);
 
     await prisma.transaction.createMany({
       data: [
@@ -190,7 +209,7 @@ async function main() {
           amount: randomIncome,
           currency: 'EGP',
           category: 'Salary',
-          item: 'راتب',
+          item: 'راتب الوظيفة',
           type: 'income',
           transactionDate: new Date(now.getFullYear(), now.getMonth(), 1),
           source: 'manual'
@@ -200,7 +219,7 @@ async function main() {
           amount: randomExpense1,
           currency: 'EGP',
           category: 'Housing',
-          item: 'إيجار',
+          item: 'إيجار سكن',
           type: 'expense',
           transactionDate: new Date(now.getFullYear(), now.getMonth(), 5),
           source: 'manual'
@@ -210,7 +229,7 @@ async function main() {
           amount: randomExpense2,
           currency: 'EGP',
           category: 'Food',
-          item: 'مطعم',
+          item: 'مشتريات بقالة',
           type: 'expense',
           transactionDate: new Date(now.getFullYear(), now.getMonth(), 10),
           source: 'manual'
