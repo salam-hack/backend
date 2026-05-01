@@ -14,18 +14,32 @@ class ChatRepository {
   /**
    * Get all active conversations for a user.
    */
-  getUserConversations(userId) {
-    return prisma.conversation.findMany({
+  async getUserConversations(userId) {
+    const conversations = await prisma.conversation.findMany({
       where: { userId, status: "active" },
       select: {
         id: true,
         title: true,
         summary: true,
         createdAt: true,
-        lastMessageAt: true
+        lastMessageAt: true,
+        messages: {
+          where: { role: 'user' },
+          orderBy: { createdAt: 'asc' },
+          take: 1,
+          select: { content: true }
+        }
       },
       orderBy: { updatedAt: "desc" }
     });
+
+    return conversations.map(c => ({
+      id: c.id,
+      title: c.messages[0]?.content || c.title,
+      summary: c.summary,
+      createdAt: c.createdAt,
+      lastMessageAt: c.lastMessageAt
+    }));
   }
 
   /**
@@ -39,6 +53,16 @@ class ChatRepository {
         title: true,
         createdAt: true,
       },
+    });
+  }
+
+  /**
+   * Update a conversation's data.
+   */
+  updateConversation(id, data) {
+    return prisma.conversation.update({
+      where: { id },
+      data,
     });
   }
 
