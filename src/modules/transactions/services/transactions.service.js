@@ -17,7 +17,7 @@ class TransactionsService {
 
   async getOne(userId, id) {
     const tx = await transactionsRepository.findOwned(id, userId);
-    if (!tx) throw new NotFoundError('Transaction not found');
+    if (!tx) throw new NotFoundError('المعاملة غير موجودة');
     return tx;
   }
 
@@ -38,13 +38,13 @@ class TransactionsService {
 
   async update(userId, id, data) {
     const tx = await transactionsRepository.findOwned(id, userId);
-    if (!tx) throw new NotFoundError('Transaction not found');
+    if (!tx) throw new NotFoundError('المعاملة غير موجودة');
     return transactionsRepository.update(id, data);
   }
 
   async delete(userId, id) {
     const tx = await transactionsRepository.findOwned(id, userId);
-    if (!tx) throw new NotFoundError('Transaction not found');
+    if (!tx) throw new NotFoundError('المعاملة غير موجودة');
     await transactionsRepository.delete(id);
     return { deleted: true, id };
   }
@@ -62,7 +62,7 @@ class TransactionsService {
 
   async addManual(userId, data) {
     const category = getCategoryName(data.categoryId);
-    if (!category) throw new BadRequestError('Invalid categoryId');
+    if (!category) throw new BadRequestError('تصنيف غير صالح');
 
     return transactionsRepository.create({
       userId,

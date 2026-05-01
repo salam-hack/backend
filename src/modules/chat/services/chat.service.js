@@ -83,7 +83,7 @@ class ChatService {
     });
 
     // Update title if it's the default
-    if (conversation.title === 'New Chat') {
+    if (conversation.title === 'محادثة جديدة') {
       await chatRepository.updateConversation(conversationId, { title: content.trim() });
     }
 
@@ -133,7 +133,7 @@ class ChatService {
    */
   async _requireOwnership(userId, conversationId) {
     const conv = await chatRepository.findConversation(conversationId, userId);
-    if (!conv) throw new NotFoundError("Conversation not found");
+    if (!conv) throw new NotFoundError("المحادثة غير موجودة");
     return conv;
   }
 

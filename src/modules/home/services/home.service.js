@@ -108,7 +108,7 @@ class HomeService {
       const monthlySavings = savingsData.monthlySavings;
 
       let estimatedDate = goal.systemCalculatedDate || goal.userExpectedDate || null;
-      let message = 'Start saving to reach your goal!';
+      let message = 'ابدأ بالادخار لتحقيق هدفك!';
 
       if (monthlySavings > 0 && remaining > 0) {
         const monthsNeeded = Math.ceil(remaining / monthlySavings);
@@ -117,16 +117,16 @@ class HomeService {
         estimatedDate = estimatedDateObj;
 
         if (monthsNeeded <= 3) {
-          message = `Almost there! You can reach this goal in ${monthsNeeded} month${monthsNeeded > 1 ? 's' : ''}.`;
+          message = `اقتربت جداً! يمكنك تحقيق هذا الهدف خلال ${monthsNeeded} شهر.`;
         } else if (monthsNeeded <= 6) {
-          message = `Good progress! You'll reach this in about ${monthsNeeded} months.`;
+          message = `تقدم جيد! ستصل إلى هدفك خلال ${monthsNeeded} أشهر تقريباً.`;
         } else if (monthsNeeded <= 12) {
-          message = `Keep saving! This goal will take about ${monthsNeeded} months.`;
+          message = `استمر في الادخار! سيستغرق هذا الهدف حوالي ${monthsNeeded} أشهر.`;
         } else {
-          message = `This is a long-term goal. At your current savings rate, it will take ${monthsNeeded} months.`;
+          message = `هذا هدف طويل الأمد. بمعدل ادخارك الحالي، سيستغرق ${monthsNeeded} شهر.`;
         }
       } else if (monthlySavings <= 0) {
-        message = 'Your expenses exceed income. Focus on increasing savings first.';
+        message = 'مصروفاتك تتجاوز دخلك. ركز على زيادة التوفير أولاً.';
         estimatedDate = null;
       }
 
@@ -206,8 +206,8 @@ class HomeService {
     const topCategory = categoryRows[0];
     if (topCategory) {
       analysis.push({
-        title: `High spending on ${topCategory.category}`,
-        description: `${topCategory.category} is your highest spending category this month.`,
+        title: `إنفاق مرتفع على ${topCategory.category}`,
+        description: `تعتبر فئة ${topCategory.category} هي أعلى فئة إنفاق لديك هذا الشهر.`,
         type: 'warning',
       });
     }
@@ -217,10 +217,10 @@ class HomeService {
       const savingsRate = (savings / balance.incomeThisMonth) * 100;
 
       analysis.push({
-        title: savingsRate >= 20 ? 'Healthy savings rate' : 'Savings opportunity',
+        title: savingsRate >= 20 ? 'معدل ادخار صحي' : 'فرصة للادخار',
         description: savingsRate >= 20
-          ? 'You are saving at least 20% of your income this month.'
-          : 'You have room to save more. Aim to save 20% of your income.',
+          ? 'أنت توفر ما لا يقل عن 20% من دخلك هذا الشهر.'
+          : 'لديك مساحة للتوفير أكثر. اهدف لتوفير 20% من دخلك.',
         type: savingsRate >= 20 ? 'positive' : 'suggestion',
       });
     }
@@ -246,7 +246,7 @@ class HomeService {
 
     return transactions.map(tx => ({
       id: tx.id,
-      title: tx.item || tx.notes || 'Transaction',
+      title: tx.item || tx.notes || 'معاملة',
       amount: Number(tx.amount),
       type: tx.type,
       categoryId: getCategoryId(tx.category) || 'EXP_OTHER',
