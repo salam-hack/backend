@@ -73,7 +73,7 @@ class ChatService {
    */
   async sendMessage(userId, conversationId, content) {
     // ── 1. Ownership check ───────────────────────────────────────────────────
-    await this._requireOwnership(userId, conversationId);
+    const conversation = await this._requireOwnership(userId, conversationId);
 
     // ── 2. Persist user message ──────────────────────────────────────────────
     const userMessage = await chatRepository.createMessage({
@@ -83,6 +83,11 @@ class ChatService {
       content: content.trim(),
       status: "completed",
     });
+
+    // Update title if it's the default
+    if (conversation.title === 'New Chat') {
+      await chatRepository.updateConversation(conversationId, { title: content.trim() });
+    }
 
     // ── 3. Create processing placeholder for assistant ───────────────────────
     const placeholder = await chatRepository.createMessage({
