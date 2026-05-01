@@ -55,7 +55,7 @@ class AiChatService {
       }
       return result;
     }
-    
+
     // If it's a standard JS object
     if (typeof result?.reply === "string") return result.reply;
     if (typeof result?.content === "string") return result.content;

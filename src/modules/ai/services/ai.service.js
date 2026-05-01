@@ -7,7 +7,7 @@ class AiService {
   async _sendToParser(text) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
 
       const response = await fetch(env.aiParserUrl, {
         method: 'POST',

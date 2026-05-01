@@ -34,78 +34,219 @@ The codebase follows clean architecture principles:
 
 ### Public Endpoints
 
-- **Dashboard Data**
-  - `POST /api/home`
-  - **Body**:
-    - `userId` (Required, UUID)
+#### Dashboard Data
+- **Endpoint**: `POST /api/home`
+- **Request Body**:
+  ```json
+  { "userId": "uuid" }
+  ```
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "user": { "name": "...", "balance": 0 },
+      "recentTransactions": [...],
+      "goals": [...]
+    }
+  }
+  ```
 
-- **Add Manual Transaction**
-  - `POST /api/transactions/add-manual`
-  - **Body**:
-    - `userId` (Required, UUID)
-    - `title` (Required, String)
-    - `amount` (Required, Number)
-    - `type` (Required, "income" | "expense")
-    - `categoryId` (Required, String, e.g., "EXP_FOOD")
-    - `date` (Optional, ISO Date String)
-    - `conversationId` (Optional, UUID) - If provided, returns an AI confirmation message.
-  - **Response**: Returns transaction `data` and root-level `assistantMessage`.
+#### Add Manual Transaction
+- **Endpoint**: `POST /api/transactions/add-manual`
+- **Request Body**:
+  ```json
+  {
+    "userId": "uuid",
+    "title": "Grocery Shopping",
+    "amount": 450,
+    "type": "expense",
+    "categoryId": "EXP_FOOD",
+    "date": "2026-05-01T00:00:00Z",
+    "conversationId": "optional-uuid"
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": { "id": "...", "amount": 450, ... },
+    "assistantMessage": { "content": "..." }
+  }
+  ```
 
-- **AI Transaction Parser**
-  - `POST /api/transactions/parse-ai`
-  - **Body**:
-    - `userId` (Required, UUID)
-    - `message` or `text` (Required, String)
+#### AI Transaction Parser
+- **Endpoint**: `POST /api/transactions/parse-ai`
+- **Request Body**:
+  ```json
+  {
+    "userId": "uuid",
+    "message": "I spent 50 EGP on coffee today"
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": { "item": "coffee", "amount": 50, "category": "Food" }
+  }
+  ```
 
-- **Get Categories**
-  - `GET /api/transactions/categories`
+#### Get Categories
+- **Endpoint**: `GET /api/transactions/categories`
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": [ { "id": "EXP_FOOD", "name": "Food", "icon": "🍔" }, ... ]
+  }
+  ```
 
-- **List Transactions**
-  - `GET /api/transactions/all`
-  - **Query Params**:
-    - `userId` (Required, UUID)
-    - `limit` (Optional, Number)
-    - `offset` (Optional, Number)
-    - `type` (Optional, "income" | "expense")
-    - `from`/`to` (Optional, ISO Date)
+#### List Transactions
+- **Endpoint**: `GET /api/transactions/all?userId=<uuid>&limit=10`
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": [ { "id": "...", "title": "...", "amount": 100 }, ... ]
+  }
+  ```
 
-- **Savings Analysis**
-  - `GET /api/financial/savings-analysis?userId=<uuid>`
+#### Savings Analysis
+- **Endpoint**: `GET /api/financial/savings-analysis?userId=<uuid>`
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": { "savingsRate": 0.25, "monthlyAverage": 5000 }
+  }
+  ```
 
-- **Financial Insights**
-  - `POST /api/insights`
-  - **Body**:
-    - `userId` (Required, UUID)
-  - **Response**: Returns an array of customized alerts (daily, weekly, monthly) based on the user's spending behavior.
+#### Financial Insights (AI Alerts)
+- **Endpoint**: `POST /api/insights`
+- **Request Body**:
+  ```json
+  { "userId": "uuid" }
+  ```
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": [ { "type": "daily", "content": "..." }, ... ]
+  }
+  ```
 
-- **Send Chat Message**
-  - `POST /api/chat/send`
-  - **Body**:
-    - `userId` (Required, UUID)
-    - `conversationId` (Required, UUID)
-    - `message` (Required, String)
-  - **Response**: Returns root-level `assistantMessage`.
+---
 
-- **Create New Conversation**
-  - `POST /api/chat/new`
-  - **Body**:
-    - `userId` (Required, UUID)
-    - `title` (Optional, String)
+### Financial Goals (CRUD)
 
-- **List All Conversations**
-  - `POST /api/chat/list`
-  - **Body**:
-    - `userId` (Required, UUID)
-  - **Description**: Returns a list of all active conversations, where `title` is the AI-generated `summary`.
-  - **Response**: `[ { id, title, createdAt, lastMessageAt }, ... ]`
+All Goal endpoints use `POST` and expect the ID in the body.
 
-- **Get Conversation Turns**
-  - `POST /api/chat/:conversationId/turns`
-  - **Body**:
-    - `userId` (Required, UUID)
-    - `limit` (Optional, Number, default: 50)
-  - **Description**: Returns the conversation history formatted as a list of turns.
-  - **Response**: `[ { user: "message", assistant: "reply" }, ... ]`
+#### List Goals
+- **Endpoint**: `POST /api/goals/list`
+- **Request Body**:
+  ```json
+  { "userId": "uuid" }
+  ```
+- **Response**:
+  ```json
+  { "success": true, "data": [ { "id": "...", "title": "Buy a car" }, ... ] }
+  ```
+
+#### Create Goal
+- **Endpoint**: `POST /api/goals/create`
+- **Request Body**:
+  ```json
+  {
+    "userId": "uuid",
+    "title": "New Car",
+    "targetAmount": 200000,
+    "currentAmount": 5000,
+    "userExpectedDate": "2027-01-01T00:00:00Z"
+  }
+  ```
+- **Response**:
+  ```json
+  { "success": true, "data": { "id": "...", "title": "New Car" } }
+  ```
+
+#### Goal Detail
+- **Endpoint**: `POST /api/goals/detail`
+- **Request Body**:
+  ```json
+  { "userId": "uuid", "id": "goal-uuid" }
+  ```
+- **Response**:
+  ```json
+  { "success": true, "data": { "id": "...", "title": "..." } }
+  ```
+
+#### Update Goal
+- **Endpoint**: `POST /api/goals/update`
+- **Request Body**:
+  ```json
+  {
+    "userId": "uuid",
+    "id": "goal-uuid",
+    "currentAmount": 10000,
+    "status": "active"
+  }
+  ```
+
+#### Delete Goal
+- **Endpoint**: `POST /api/goals/delete`
+- **Request Body**:
+  ```json
+  { "userId": "uuid", "id": "goal-uuid" }
+  ```
+
+---
+
+### AI Chat & Conversations
+
+#### Send Chat Message
+- **Endpoint**: `POST /api/chat/send`
+- **Request Body**:
+  ```json
+  {
+    "userId": "uuid",
+    "conversationId": "uuid",
+    "message": "How can I save more money?"
+  }
+  ```
+- **Response**:
+  ```json
+  { "assistantMessage": { "content": "You can start by..." } }
+  ```
+
+#### Create New Conversation
+- **Endpoint**: `POST /api/chat/new`
+- **Request Body**:
+  ```json
+  { "userId": "uuid", "title": "Optional Title" }
+  ```
+
+#### List All Conversations
+- **Endpoint**: `POST /api/chat/list`
+- **Request Body**:
+  ```json
+  { "userId": "uuid" }
+  ```
+- **Description**: Returns all conversations. The `title` field automatically reflects the **first user message** sent in that conversation.
+
+#### Get Conversation Turns
+- **Endpoint**: `POST /api/chat/:conversationId/turns`
+- **Request Body**:
+  ```json
+  { "userId": "uuid", "limit": 50 }
+  ```
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": [ { "user": "Hello", "assistant": "Hi there!" }, ... ]
+  }
+  ```
 
 ### User Endpoints
 
