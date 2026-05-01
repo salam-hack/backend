@@ -33,25 +33,23 @@ class ChatService {
 
     const messages = await chatRepository.getRecentMessages(conversationId, limit * 2);
     
-    // getRecentMessages returns messages ordered by createdAt DESC (newest first).
-    // To build turns correctly, we reverse them so oldest comes first.
-    const reversedMessages = messages.reverse();
+    // getRecentMessages already returns messages ordered by createdAt ASC (oldest first).
+    // So we don't need to reverse them here.
+    const chronologicalMessages = messages;
     
     const turns = [];
     let currentTurn = null;
 
-    for (const msg of reversedMessages) {
+    for (const msg of chronologicalMessages) {
       if (msg.status !== 'completed') continue;
 
       if (msg.role === 'user') {
-        if (currentTurn) turns.push(currentTurn);
         currentTurn = { user: msg.content, assistant: null };
+        turns.push(currentTurn);
       } else if (msg.role === 'assistant' && currentTurn) {
         currentTurn.assistant = msg.content;
       }
     }
-
-    if (currentTurn) turns.push(currentTurn);
 
     return turns;
   }
@@ -88,6 +86,9 @@ class ChatService {
     if (conversation.title === 'New Chat') {
       await chatRepository.updateConversation(conversationId, { title: content.trim() });
     }
+
+    // Small delay to ensure distinct timestamps for user and assistant messages
+    await new Promise(resolve => setTimeout(resolve, 10));
 
     // ── 3. Create processing placeholder for assistant ───────────────────────
     const placeholder = await chatRepository.createMessage({
