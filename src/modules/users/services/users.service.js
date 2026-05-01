@@ -11,13 +11,13 @@ function safeUser(user) {
 class UsersService {
   async getMe(userId) {
     const user = await usersRepository.findById(userId);
-    if (!user) throw new NotFoundError('User not found');
+    if (!user) throw new NotFoundError('المستخدم غير موجود');
     return safeUser(user);
   }
 
   async updateMe(userId, data) {
     const user = await usersRepository.findById(userId);
-    if (!user) throw new NotFoundError('User not found');
+    if (!user) throw new NotFoundError('المستخدم غير موجود');
     const updated = await usersRepository.update(userId, data);
     return safeUser(updated);
   }

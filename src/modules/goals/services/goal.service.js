@@ -16,7 +16,7 @@ class GoalService {
    */
   async getGoal(id, userId) {
     const goal = await goalRepository.findById(id, userId);
-    if (!goal) throw new NotFoundError("Goal not found");
+    if (!goal) throw new NotFoundError("الهدف غير موجود");
     return goal;
   }
 
